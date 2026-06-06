@@ -3,41 +3,35 @@
 [![CI](https://github.com/eiei114/pi-localgpt/actions/workflows/ci.yml/badge.svg)](https://github.com/eiei114/pi-localgpt/actions/workflows/ci.yml)
 [![Publish](https://github.com/eiei114/pi-localgpt/actions/workflows/publish.yml/badge.svg)](https://github.com/eiei114/pi-localgpt/actions/workflows/publish.yml)
 [![npm version](https://img.shields.io/npm/v/pi-localgpt.svg)](https://www.npmjs.com/package/pi-localgpt)
+[![npm downloads](https://img.shields.io/npm/dm/pi-localgpt.svg)](https://www.npmjs.com/package/pi-localgpt)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 [![Pi package](https://img.shields.io/badge/pi-package-purple.svg)](https://pi.dev/packages)
 [![Trusted Publishing](https://img.shields.io/badge/npm-Trusted%20Publishing-blue.svg)](docs/release.md)
 
-> LocalGPT workspace memory for Pi — direct file access, no `localgpt` binary spawn.
+> 50 curated tools for LocalGPT memory + Gen 3D world building, via unified 1-shot MCP bridge.
 
 ## What this is
 
-`pi-localgpt` gives Pi agents curated tools to read and write **[LocalGPT](https://localgpt.app/)** workspace memory (`MEMORY.md`, daily logs).
+`pi-localgpt` gives Pi agents tools to work with **[LocalGPT](https://localgpt.app/)** — a Rust-powered real-time 3D level design tool (Bevy engine, 80+ MCP tools).
 
-- **No** per-call `localgpt mcp-server` spawn
-- **No** `.mcp.json` resident MCP requirement
-- **No** `cargo install localgpt` required for memory tools
-- Keyword search over workspace markdown (not upstream semantic ranking)
+All tools use a **1-shot MCP bridge**: each call spawns `localgpt-gen mcp-server --connect`, sends one request, and exits. No persistent background process.
 
 > **Not** the unrelated Python RAG project also named "LocalGPT".
 
+## Features
+
+- **Memory tools** — semantic + keyword search, read, save, daily log via MCP bridge
+- **Scene building** — spawn/modify/delete entities, camera, lighting, environment
+- **WorldGen pipeline** — text description → layout plan → blockout → populate → evaluate → refine
+- **Game mechanics** — player, NPC, triggers, teleporters, collectibles, doors, physics
+- **Terrain & environment** — procedural terrain, water, foliage, sky, audio
+- **Export** — screenshot, glTF, HTML, world skills
+- **Generic call** — unwrapped tools accessible via `localgpt_gen_call`
+
 ## Prerequisites
 
-A LocalGPT workspace with markdown memory files. Typical layout:
-
-```text
-<workspace>/
-├── MEMORY.md
-└── memory/
-    └── YYYY-MM-DD.md
-```
-
-Paths resolve from:
-
-- `%APPDATA%/localgpt/config.toml` (Windows) or `~/.config/localgpt/config.toml` (macOS/Linux)
-- `[memory].workspace` in config, or defaults under `%APPDATA%/localgpt/workspace` / `~/.local/share/localgpt/workspace`
-- Overrides: `LOCALGPT_CONFIG`, `LOCALGPT_WORKSPACE`
-
-Optional: install upstream [localgpt](https://github.com/localgpt-app/localgpt) if you also want chat, daemon, or hybrid semantic search outside Pi.
+- `localgpt-gen` installed (`cargo install localgpt-gen`)
+- **localgpt-gen running interactively** (Bevy window open) — all tools connect via `--connect` relay on port 9878
 
 ## Install
 
@@ -54,52 +48,128 @@ npm install
 pi -e .
 ```
 
+## Quick start
+
+1. Start `localgpt-gen` interactively (Bevy window opens)
+2. Check relay: `/localgpt:gen-status` or `localgpt_gen_status`
+3. Search memory: `localgpt_memory_search` → `localgpt_memory_get`
+4. Build world: `localgpt_gen_plan` → `localgpt_gen_blockout` → `localgpt_gen_populate`
+5. Save design: `localgpt_memory_save`
+
+See [`skills/localgpt-gen/SKILL.md`](skills/localgpt-gen/SKILL.md) for the full workflow guide.
+
+## Package contents
+
+| Path | Purpose |
+|---|---|
+| `extensions/` | Pi TypeScript extension entrypoints |
+| `lib/` | Shared TypeScript helpers (MCP client, gen tools) |
+| `skills/` | Agent Skills (`localgpt-gen`) |
+| `scripts/` | CI helpers (version bump check) |
+| `docs/` | Supporting docs (release, manual test checklist) |
+
 ## Tools
+
+### Memory
 
 | Tool | Purpose |
 |---|---|
-| `localgpt_status` | Config + workspace + file readiness |
-| `localgpt_memory_search` | Keyword search over workspace markdown |
-| `localgpt_memory_get` | Read line range from a memory file |
-| `localgpt_memory_save` | Append to `MEMORY.md` |
-| `localgpt_memory_log` | Append to today's daily log |
+| `localgpt_memory_search` | Search workspace memory |
+| `localgpt_memory_get` | Read entry by ID |
+| `localgpt_memory_save` | Save durable knowledge |
+| `localgpt_memory_log` | Append to daily log |
 
-## Commands
+### Status
+
+| Tool | Purpose |
+|---|---|
+| `localgpt_gen_status` | Binary + relay check |
+| `localgpt_gen_call` | Generic tool wrapper |
+
+### Scene
+
+| Tool | Purpose |
+|---|---|
+| `localgpt_gen_screenshot` | Viewport screenshot |
+| `localgpt_gen_scene` | Scene hierarchy |
+| `localgpt_gen_entity` | Entity details |
+| `localgpt_gen_spawn` / `_batch` | Spawn primitives |
+| `localgpt_gen_modify` / `_delete` | Entity changes |
+| `localgpt_gen_camera` / `_light` / `_environment` | Camera & lighting |
+| `localgpt_gen_undo` / `_redo` / `_clear` | History & reset |
+
+### Player & NPC
+
+| Tool | Purpose |
+|---|---|
+| `localgpt_gen_spawn_player` | Spawn player character |
+| `localgpt_gen_add_npc` | Create NPC |
+| `localgpt_gen_npc_dialogue` | Conversation tree |
+
+### Interactions
+
+| Tool | Purpose |
+|---|---|
+| `localgpt_gen_add_trigger` | Proximity/click/area trigger |
+| `localgpt_gen_add_teleporter` | Teleporter portal |
+| `localgpt_gen_add_collectible` | Collectible pickup |
+| `localgpt_gen_add_door` | Interactive door |
+
+### Physics
+
+| Tool | Purpose |
+|---|---|
+| `localgpt_gen_set_physics` | Physics body |
+| `localgpt_gen_add_collider` | Collision shape |
+| `localgpt_gen_add_force` | Force / impulse |
+| `localgpt_gen_set_gravity` | Gravity preset |
+
+### Terrain & Sky
+
+| Tool | Purpose |
+|---|---|
+| `localgpt_gen_add_terrain` | Procedural terrain |
+| `localgpt_gen_add_water` | Water plane |
+| `localgpt_gen_add_foliage` | Vegetation scatter |
+| `localgpt_gen_set_sky` | Sky & atmosphere |
+
+### Audio
+
+| Tool | Purpose |
+|---|---|
+| `localgpt_gen_set_ambience` | Ambient soundscape |
+| `localgpt_gen_audio_emitter` | Positional audio |
+
+### WorldGen Pipeline
+
+| Tool | Purpose |
+|---|---|
+| `localgpt_gen_plan` | Text → layout plan |
+| `localgpt_gen_blockout` | Apply blockout |
+| `localgpt_gen_modify_blockout` | Edit blockout |
+| `localgpt_gen_populate` | Fill region |
+| `localgpt_gen_set_tier` / `_role` | Entity tier/role |
+| `localgpt_gen_evaluate` | Scene evaluation |
+| `localgpt_gen_refine` | Auto-improvement loop |
+| `localgpt_gen_navmesh` | Walkability grid |
+| `localgpt_gen_regenerate` | Refresh regions |
+
+### Export & World Skills
+
+| Tool | Purpose |
+|---|---|
+| `localgpt_gen_export_screenshot` | Screenshot to file |
+| `localgpt_gen_export_gltf` | Export glTF |
+| `localgpt_gen_export_html` | Export HTML |
+| `localgpt_gen_save` / `_load` | World skills |
+
+### Commands
 
 | Command | Purpose |
 |---|---|
-| `/localgpt:init` | Create workspace + MEMORY.md + memory/ dir |
-| `/localgpt:status` | Show workspace status |
-| `/localgpt:search` | Prompt for a memory query |
-| `/localgpt:remember` | Prompt for text → `MEMORY.md` |
+| `/localgpt:gen-status` | Check binary + relay |
 
-## Recommended workflow
-
-1. Run `/localgpt:init` to create the workspace on first use.
-2. `localgpt_memory_search` for recall.
-3. `localgpt_memory_get` when snippets are too short.
-4. `localgpt_memory_save` for durable facts; `localgpt_memory_log` for daily notes.
-
-## Alternative: upstream MCP
-
-If you prefer upstream hybrid search and official tool semantics, register LocalGPT's MCP server directly:
-
-```json
-{
-  "mcpServers": {
-    "localgpt": {
-      "command": "localgpt",
-      "args": ["mcp-server"]
-    }
-  }
-}
-```
-
-That spawns the Rust binary per MCP session. `pi-localgpt` avoids that by reading files directly.
-
-## Manual test checklist
-
-See [`docs/manual-test-checklist.md`](docs/manual-test-checklist.md).
+Arguments are not required. Details are entered after the command runs.
 
 ## Development
 
@@ -110,19 +180,26 @@ npm run ci
 
 ## Release
 
-npm Trusted Publishing via GitHub Actions. See [`docs/release.md`](docs/release.md).
+This package uses npm Trusted Publishing — no `NPM_TOKEN` required.
+
+```bash
+npm version patch
+git push
+```
+
+See [`docs/release.md`](docs/release.md) for setup details.
 
 ## Security
 
-Pi packages execute with your local permissions. Memory append tools can modify files under your LocalGPT workspace.
+Pi packages can execute code with your local permissions. Gen tools drive the Bevy 3D window via the `--connect` relay.
 
-See [`SECURITY.md`](SECURITY.md).
+For vulnerability reporting, see [`SECURITY.md`](SECURITY.md).
 
 ## Links
 
 - npm: https://www.npmjs.com/package/pi-localgpt
 - GitHub: https://github.com/eiei114/pi-localgpt
-- Upstream: https://github.com/localgpt-app/localgpt
+- Issues: https://github.com/eiei114/pi-localgpt/issues
 
 ## License
 

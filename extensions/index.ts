@@ -1,193 +1,225 @@
 import type { ExtensionAPI } from "@earendil-works/pi-coding-agent";
 import { Type } from "typebox";
-import { LOCALGPT_DEFAULT_MAX_CHARS } from "../lib/formatters.ts";
+import { genCallTool } from "../lib/gen-mcp-client.ts";
+import { formatGenStatus, inspectGenStatus } from "../lib/gen-status.ts";
 import {
-  promptForInput,
-  runMemoryGet,
-  runMemoryLog,
-  runMemorySave,
-  runMemorySearch,
-} from "../lib/localgpt-memory.ts";
-import { formatInitResult, initLocalgptWorkspace } from "../lib/localgpt-init.ts";
-import { formatLocalgptStatus, inspectLocalgptStatus } from "../lib/status.ts";
-
-const statusParameters = Type.Object({});
-
-const searchParameters = Type.Object({
-  query: Type.String({ description: "Search query for LocalGPT workspace memory (keyword match)." }),
-  limit: Type.Optional(Type.Number({ description: "Maximum number of hits. Default: 10." })),
-  maxChars: Type.Optional(Type.Number({ description: `Maximum output characters. Default: ${LOCALGPT_DEFAULT_MAX_CHARS}.` })),
-});
-
-const getParameters = Type.Object({
-  path: Type.String({ description: "Workspace-relative path from search results, e.g. MEMORY.md or memory/2026-06-06.md." }),
-  startLine: Type.Optional(Type.Number({ description: "1-based start line. Default: 1." })),
-  endLine: Type.Optional(Type.Number({ description: "1-based end line inclusive. Default: end of file." })),
-  maxChars: Type.Optional(Type.Number({ description: `Maximum output characters. Default: ${LOCALGPT_DEFAULT_MAX_CHARS}.` })),
-});
-
-const writeParameters = Type.Object({
-  content: Type.String({ description: "Markdown text to append." }),
-});
+  screenshotSchema, genScreenshot,
+  sceneInfoSchema, genSceneInfo,
+  entityInfoSchema, genEntityInfo,
+  spawnPrimitiveSchema, genSpawnPrimitive,
+  spawnBatchSchema, genSpawnBatch,
+  modifyEntitySchema, genModifyEntity,
+  deleteEntitySchema, genDeleteEntity,
+  setCameraSchema, genSetCamera,
+  setLightSchema, genSetLight,
+  setEnvironmentSchema, genSetEnvironment,
+  planLayoutSchema, genPlanLayout,
+  applyBlockoutSchema, genApplyBlockout,
+  modifyBlockoutSchema, genModifyBlockout,
+  populateRegionSchema, genPopulateRegion,
+  setTierSchema, genSetTier,
+  setRoleSchema, genSetRole,
+  evaluateSceneSchema, genEvaluateScene,
+  autoRefineSchema, genAutoRefine,
+  buildNavmeshSchema, genBuildNavmesh,
+  regenerateSchema, genRegenerate,
+  exportGltfSchema, genExportGltf,
+  exportHtmlSchema, genExportHtml,
+  saveWorldSchema, genSaveWorld,
+  loadWorldSchema, genLoadWorld,
+  clearSceneSchema, genClearScene,
+  undoSchema, genUndo,
+  redoSchema, genRedo,
+  memorySearchSchema, genMemorySearch,
+  memoryGetSchema, genMemoryGet,
+  memorySaveSchema, genMemorySave,
+  memoryLogSchema, genMemoryLog,
+  spawnPlayerSchema, genSpawnPlayer,
+  addNpcSchema, genAddNpc,
+  setNpcDialogueSchema, genSetNpcDialogue,
+  addTriggerSchema, genAddTrigger,
+  addTeleporterSchema, genAddTeleporter,
+  addCollectibleSchema, genAddCollectible,
+  addDoorSchema, genAddDoor,
+  setPhysicsSchema, genSetPhysics,
+  addColliderSchema, genAddCollider,
+  addForceSchema, genAddForce,
+  setGravitySchema, genSetGravity,
+  addTerrainSchema, genAddTerrain,
+  addWaterSchema, genAddWater,
+  addFoliageSchema, genAddFoliage,
+  setSkySchema, genSetSky,
+  setAmbienceSchema, genSetAmbience,
+  audioEmitterSchema, genAudioEmitter,
+  exportScreenshotSchema, genExportScreenshot,
+} from "../lib/gen-tools.ts";
 
 export default function (pi: ExtensionAPI) {
-  pi.registerCommand("localgpt:status", {
-    description: "Show LocalGPT workspace memory status for pi-localgpt",
-    handler: async (_args, ctx) => {
-      const summary = await inspectLocalgptStatus();
-      ctx.ui.notify(formatLocalgptStatus(summary), summary.ok ? "info" : "warning");
-    },
-  });
+  // ── Commands ──────────────────────────────────────────────────────
 
-  pi.registerCommand("localgpt:init", {
-    description: "Create LocalGPT workspace directory, MEMORY.md, and memory/ folder",
+  pi.registerCommand("localgpt:gen-status", {
+    description: "Check localgpt-gen binary and relay availability",
     handler: async (_args, ctx) => {
       try {
-        const result = await initLocalgptWorkspace();
-        ctx.ui.notify(formatInitResult(result), "info");
+        const summary = await inspectGenStatus();
+        ctx.ui.notify(formatGenStatus(summary), summary.ok ? "info" : "warning");
       } catch (error) {
         ctx.ui.notify(error instanceof Error ? error.message : String(error), "error");
       }
     },
   });
 
-  pi.registerCommand("localgpt:search", {
-    description: "Search LocalGPT workspace memory (keyword)",
-    handler: async (args, ctx) => {
-      const query = await promptForInput(ctx, "Search LocalGPT memory:", "e.g. rust async, project preferences", args);
-      if (!query) {
-        ctx.ui.notify("Search cancelled. Enter a memory query.", "warning");
-        return;
-      }
+  // ── Generic gen call ─────────────────────────────────────────────
 
-      try {
-        const result = await runMemorySearch(query, 10, { signal: ctx.signal });
-        ctx.ui.notify(result.text, "info");
-      } catch (error) {
-        ctx.ui.notify(error instanceof Error ? error.message : String(error), "error");
-      }
-    },
-  });
-
-  pi.registerCommand("localgpt:remember", {
-    description: "Append a note to LocalGPT MEMORY.md",
-    handler: async (args, ctx) => {
-      const content = await promptForInput(ctx, "Remember in LocalGPT:", "Long-term memory to append to MEMORY.md", args);
-      if (!content) {
-        ctx.ui.notify("Remember cancelled. Enter memory text.", "warning");
-        return;
-      }
-
-      try {
-        const result = await runMemorySave(content);
-        ctx.ui.notify(`Appended to ${result.path}`, "info");
-      } catch (error) {
-        ctx.ui.notify(error instanceof Error ? error.message : String(error), "error");
-      }
-    },
+  const genCallParameters = Type.Object({
+    tool: Type.String({ description: "Gen or memory tool name, e.g. gen_screenshot, gen_scene_info, gen_spawn_primitive, memory_search" }),
+    args: Type.Optional(Type.Record(Type.String(), Type.Unknown(), { description: "Arguments for the tool" })),
   });
 
   pi.registerTool({
-    name: "localgpt_status",
-    label: "LocalGPT Status",
-    description: "Report LocalGPT config/workspace readiness. No localgpt binary spawn; keyword search only.",
-    promptSnippet: "localgpt_status: check LocalGPT workspace memory paths before search or write tools",
+    name: "localgpt_gen_status",
+    label: "LocalGPT Gen Status",
+    description: "Check localgpt-gen binary availability and relay reachability. Each check is a 1-shot spawn — no persistent process.",
+    promptSnippet: "localgpt_gen_status: check if localgpt-gen is available before calling gen or memory tools",
     promptGuidelines: [
-      "Use this tool before localgpt_memory_search when workspace setup is uncertain.",
-      "This package reads markdown directly; it does not spawn the localgpt Rust binary.",
+      "Call before any localgpt_gen_call to verify the binary exists and relay is reachable.",
+      "Returns binary version, relay status, and available tool count.",
+      "Requires localgpt-gen running interactively for relay to work.",
     ],
-    parameters: statusParameters,
-    async execute(_toolCallId, _params, _signal) {
-      const summary = await inspectLocalgptStatus();
+    parameters: Type.Object({}),
+    async execute() {
+      const summary = await inspectGenStatus();
       return {
-        content: [{ type: "text", text: formatLocalgptStatus(summary) }],
+        content: [{ type: "text", text: formatGenStatus(summary) }],
         details: summary,
       };
     },
   });
 
   pi.registerTool({
-    name: "localgpt_memory_search",
-    label: "LocalGPT Memory Search",
-    description: `Keyword search over LocalGPT workspace markdown (MEMORY.md, daily logs). Output truncated to maxChars (default ${LOCALGPT_DEFAULT_MAX_CHARS}).`,
-    promptSnippet: "localgpt_memory_search: recall cross-session notes from LocalGPT workspace memory",
+    name: "localgpt_gen_call",
+    label: "LocalGPT Gen Call",
+    description: "Call a localgpt-gen tool via 1-shot `mcp-server --connect`. Spawns a short-lived process, sends one MCP request, exits. No persistent background process. Requires localgpt-gen running interactively.",
+    promptSnippet: "localgpt_gen_call: call a localgpt-gen tool (gen_screenshot, gen_spawn_primitive, memory_search, etc.) via 1-shot CLI",
     promptGuidelines: [
-      "Use for cross-session preferences, assistant context, and long-running project notes stored in LocalGPT.",
-      "Follow with localgpt_memory_get when you need more lines from a hit.",
-      "Not semantic search — keyword match only.",
+      "Each call spawns `localgpt-gen mcp-server --connect`, sends one MCP request, then exits. No persistent process.",
+      "Requires localgpt-gen running interactively (the Bevy window) for --connect relay to work.",
+      "Use localgpt_gen_status to check availability first.",
+      "All gen + memory tools available via this generic wrapper.",
     ],
-    parameters: searchParameters,
+    parameters: genCallParameters,
     async execute(_toolCallId, params, signal) {
-      const result = await runMemorySearch(params.query, params.limit, {
-        maxChars: params.maxChars,
-        signal,
-      });
+      try {
+        const result = await genCallTool(params.tool, (params.args as Record<string, unknown>) ?? {}, { signal });
 
-      return {
-        content: [{ type: "text", text: result.text }],
-        details: { results: result.results, workspacePath: result.workspacePath },
-      };
+        const text = typeof result === "string"
+          ? result
+          : JSON.stringify(result, null, 2);
+
+        return {
+          content: [{ type: "text", text }],
+          details: result,
+        };
+      } catch (error) {
+        const message = error instanceof Error ? error.message : String(error);
+        return {
+          content: [{ type: "text", text: `localgpt_gen_call error: ${message}` }],
+          isError: true,
+          details: { error: message },
+        };
+      }
     },
   });
 
-  pi.registerTool({
-    name: "localgpt_memory_get",
-    label: "LocalGPT Memory Get",
-    description: `Read a line range from a LocalGPT workspace memory file. Use after localgpt_memory_search.`,
-    promptSnippet: "localgpt_memory_get: read full lines from a LocalGPT memory file path returned by search",
-    promptGuidelines: [
-      "Call after localgpt_memory_search when snippet context is insufficient.",
-      "Path must stay inside the LocalGPT workspace.",
-    ],
-    parameters: getParameters,
-    async execute(_toolCallId, params, signal) {
-      const result = await runMemoryGet(params.path, params.startLine, params.endLine, {
-        maxChars: params.maxChars,
-        signal,
-      });
+  // ── Curated tools ─────────────────────────────────────────────────
 
-      return {
-        content: [{ type: "text", text: result.text }],
-        details: result,
-      };
-    },
-  });
+  const genToolMeta = [
+    // Memory
+    { name: "localgpt_memory_search", label: "Memory Search", desc: "Search LocalGPT workspace memory (semantic + keyword) via 1-shot CLI. Requires localgpt-gen running.", schema: memorySearchSchema, fn: genMemorySearch, snippet: "localgpt_memory_search: recall cross-session notes from LocalGPT workspace memory" },
+    { name: "localgpt_memory_get", label: "Memory Get", desc: "Read a specific LocalGPT memory entry by ID via 1-shot CLI. Requires localgpt-gen running.", schema: memoryGetSchema, fn: genMemoryGet, snippet: "localgpt_memory_get: read full memory entry from search result ID" },
+    { name: "localgpt_memory_save", label: "Memory Save", desc: "Save durable cross-session knowledge to LocalGPT memory via 1-shot CLI. Requires localgpt-gen running.", schema: memorySaveSchema, fn: genMemorySave, snippet: "localgpt_memory_save: persist stable preferences and facts across Pi sessions" },
+    { name: "localgpt_memory_log", label: "Memory Log", desc: "Append a timestamped daily log entry via 1-shot CLI. Requires localgpt-gen running.", schema: memoryLogSchema, fn: genMemoryLog, snippet: "localgpt_memory_log: append a timestamped note to today's LocalGPT daily log" },
+    // Player & NPC
+    { name: "localgpt_gen_spawn_player", label: "Gen Spawn Player", desc: "Spawn controllable player character via 1-shot CLI. Requires localgpt-gen running.", schema: spawnPlayerSchema, fn: genSpawnPlayer, snippet: "localgpt_gen_spawn_player: spawn a player character with movement and camera" },
+    { name: "localgpt_gen_add_npc", label: "Gen Add NPC", desc: "Create NPC with behavior via 1-shot CLI. Requires localgpt-gen running.", schema: addNpcSchema, fn: genAddNpc, snippet: "localgpt_gen_add_npc: create an NPC with idle/patrol/wander behavior" },
+    { name: "localgpt_gen_npc_dialogue", label: "Gen NPC Dialogue", desc: "Attach conversation tree to NPC via 1-shot CLI. Requires localgpt-gen running.", schema: setNpcDialogueSchema, fn: genSetNpcDialogue, snippet: "localgpt_gen_npc_dialogue: set branching dialogue for an NPC" },
+    // Interactions
+    { name: "localgpt_gen_add_trigger", label: "Gen Add Trigger", desc: "Add trigger+action pair via 1-shot CLI. Requires localgpt-gen running.", schema: addTriggerSchema, fn: genAddTrigger, snippet: "localgpt_gen_add_trigger: add proximity/click/area trigger with action" },
+    { name: "localgpt_gen_add_teleporter", label: "Gen Add Teleporter", desc: "Create teleporter portal via 1-shot CLI. Requires localgpt-gen running.", schema: addTeleporterSchema, fn: genAddTeleporter, snippet: "localgpt_gen_add_teleporter: create a teleporter between two points" },
+    { name: "localgpt_gen_add_collectible", label: "Gen Add Collectible", desc: "Make entity collectible via 1-shot CLI. Requires localgpt-gen running.", schema: addCollectibleSchema, fn: genAddCollectible, snippet: "localgpt_gen_add_collectible: make an entity a collectible pickup" },
+    { name: "localgpt_gen_add_door", label: "Gen Add Door", desc: "Add interactive door behavior via 1-shot CLI. Requires localgpt-gen running.", schema: addDoorSchema, fn: genAddDoor, snippet: "localgpt_gen_add_door: add interactive door with optional key requirement" },
+    // Physics
+    { name: "localgpt_gen_set_physics", label: "Gen Set Physics", desc: "Enable physics body on entity via 1-shot CLI. Requires localgpt-gen running.", schema: setPhysicsSchema, fn: genSetPhysics, snippet: "localgpt_gen_set_physics: set dynamic/static/kinematic physics body" },
+    { name: "localgpt_gen_add_collider", label: "Gen Add Collider", desc: "Add collision shape via 1-shot CLI. Requires localgpt-gen running.", schema: addColliderSchema, fn: genAddCollider, snippet: "localgpt_gen_add_collider: add box/sphere/capsule/cylinder collider" },
+    { name: "localgpt_gen_add_force", label: "Gen Add Force", desc: "Apply force or impulse via 1-shot CLI. Requires localgpt-gen running.", schema: addForceSchema, fn: genAddForce, snippet: "localgpt_gen_add_force: apply impulse/constant force or field" },
+    { name: "localgpt_gen_set_gravity", label: "Gen Set Gravity", desc: "Set global or regional gravity via 1-shot CLI. Requires localgpt-gen running.", schema: setGravitySchema, fn: genSetGravity, snippet: "localgpt_gen_set_gravity: set gravity preset or custom vector" },
+    // Terrain & Sky
+    { name: "localgpt_gen_add_terrain", label: "Gen Add Terrain", desc: "Generate procedural terrain via 1-shot CLI. Requires localgpt-gen running.", schema: addTerrainSchema, fn: genAddTerrain, snippet: "localgpt_gen_add_terrain: generate Perlin/Simplex noise terrain" },
+    { name: "localgpt_gen_add_water", label: "Gen Add Water", desc: "Create water plane via 1-shot CLI. Requires localgpt-gen running.", schema: addWaterSchema, fn: genAddWater, snippet: "localgpt_gen_add_water: add animated water plane" },
+    { name: "localgpt_gen_add_foliage", label: "Gen Add Foliage", desc: "Scatter vegetation via 1-shot CLI. Requires localgpt-gen running.", schema: addFoliageSchema, fn: genAddFoliage, snippet: "localgpt_gen_add_foliage: scatter trees/bushes/grass/flowers/rocks" },
+    { name: "localgpt_gen_set_sky", label: "Gen Set Sky", desc: "Configure sky and atmosphere via 1-shot CLI. Requires localgpt-gen running.", schema: setSkySchema, fn: genSetSky, snippet: "localgpt_gen_set_sky: set sky preset, sun, ambient, fog" },
+    // Audio
+    { name: "localgpt_gen_set_ambience", label: "Gen Set Ambience", desc: "Set ambient soundscape via 1-shot CLI. Requires localgpt-gen running.", schema: setAmbienceSchema, fn: genSetAmbience, snippet: "localgpt_gen_set_ambience: set ambient sound (forest, cave, ocean, etc.)" },
+    { name: "localgpt_gen_audio_emitter", label: "Gen Audio Emitter", desc: "Place a positional audio source via 1-shot CLI. Requires localgpt-gen running.", schema: audioEmitterSchema, fn: genAudioEmitter, snippet: "localgpt_gen_audio_emitter: place a 3D audio source with loop and radius" },
+    // Scene query
+    { name: "localgpt_gen_screenshot", label: "Gen Screenshot", desc: "Capture viewport screenshot via 1-shot CLI. Requires localgpt-gen running.", schema: screenshotSchema, fn: genScreenshot, snippet: "localgpt_gen_screenshot: take a screenshot of the 3D scene" },
+    { name: "localgpt_gen_scene", label: "Gen Scene Info", desc: "Get complete scene hierarchy via 1-shot CLI. Requires localgpt-gen running.", schema: sceneInfoSchema, fn: genSceneInfo, snippet: "localgpt_gen_scene: inspect current 3D scene state" },
+    { name: "localgpt_gen_entity", label: "Gen Entity Info", desc: "Get detailed info about a named entity via 1-shot CLI. Requires localgpt-gen running.", schema: entityInfoSchema, fn: genEntityInfo, snippet: "localgpt_gen_entity: inspect a specific entity in the scene" },
+    // Spawn / modify / delete
+    { name: "localgpt_gen_spawn", label: "Gen Spawn Primitive", desc: "Spawn a geometric primitive (sphere, cube, cylinder, etc.) via 1-shot CLI. Requires localgpt-gen running.", schema: spawnPrimitiveSchema, fn: genSpawnPrimitive, snippet: "localgpt_gen_spawn: spawn a 3D primitive into the scene" },
+    { name: "localgpt_gen_spawn_batch", label: "Gen Spawn Batch", desc: "Spawn multiple primitives in one call via 1-shot CLI. Requires localgpt-gen running.", schema: spawnBatchSchema, fn: genSpawnBatch, snippet: "localgpt_gen_spawn_batch: spawn multiple entities at once" },
+    { name: "localgpt_gen_modify", label: "Gen Modify Entity", desc: "Modify entity transform, material, or visibility via 1-shot CLI. Requires localgpt-gen running.", schema: modifyEntitySchema, fn: genModifyEntity, snippet: "localgpt_gen_modify: change position, color, scale of an entity" },
+    { name: "localgpt_gen_delete", label: "Gen Delete Entity", desc: "Delete an entity via 1-shot CLI. Requires localgpt-gen running.", schema: deleteEntitySchema, fn: genDeleteEntity, snippet: "localgpt_gen_delete: remove an entity from the scene" },
+    // Camera / light / environment
+    { name: "localgpt_gen_camera", label: "Gen Set Camera", desc: "Position and orient the camera via 1-shot CLI. Requires localgpt-gen running.", schema: setCameraSchema, fn: genSetCamera, snippet: "localgpt_gen_camera: set camera position and look-at target" },
+    { name: "localgpt_gen_light", label: "Gen Set Light", desc: "Configure scene lighting via 1-shot CLI. Requires localgpt-gen running.", schema: setLightSchema, fn: genSetLight, snippet: "localgpt_gen_light: set light type, color, intensity" },
+    { name: "localgpt_gen_environment", label: "Gen Set Environment", desc: "Set background color and ambient light via 1-shot CLI. Requires localgpt-gen running.", schema: setEnvironmentSchema, fn: genSetEnvironment, snippet: "localgpt_gen_environment: set background and ambient lighting" },
+    // WorldGen pipeline
+    { name: "localgpt_gen_plan", label: "Gen Plan Layout", desc: "Generate a structured world layout plan from text description via 1-shot CLI. Requires localgpt-gen running.", schema: planLayoutSchema, fn: genPlanLayout, snippet: "localgpt_gen_plan: plan a world layout from a text description" },
+    { name: "localgpt_gen_blockout", label: "Gen Apply Blockout", desc: "Apply a blockout spec to create terrain, regions, and paths via 1-shot CLI. Requires localgpt-gen running.", schema: applyBlockoutSchema, fn: genApplyBlockout, snippet: "localgpt_gen_blockout: apply blockout from plan_layout result" },
+    { name: "localgpt_gen_modify_blockout", label: "Gen Modify Blockout", desc: "Add, remove, resize, or move blockout regions via 1-shot CLI. Requires localgpt-gen running.", schema: modifyBlockoutSchema, fn: genModifyBlockout, snippet: "localgpt_gen_modify_blockout: edit blockout regions incrementally" },
+    { name: "localgpt_gen_populate", label: "Gen Populate Region", desc: "Populate a blockout region with hero/medium/decorative entities via 1-shot CLI. Requires localgpt-gen running.", schema: populateRegionSchema, fn: genPopulateRegion, snippet: "localgpt_gen_populate: fill a region with procedural placement" },
+    { name: "localgpt_gen_set_tier", label: "Gen Set Tier", desc: "Set an entity placement tier (hero, medium, decorative) via 1-shot CLI. Requires localgpt-gen running.", schema: setTierSchema, fn: genSetTier, snippet: "localgpt_gen_set_tier: tag entity placement tier" },
+    { name: "localgpt_gen_set_role", label: "Gen Set Role", desc: "Set an entity semantic role (ground, structure, prop, vegetation, etc.) via 1-shot CLI. Requires localgpt-gen running.", schema: setRoleSchema, fn: genSetRole, snippet: "localgpt_gen_set_role: tag entity semantic role for bulk ops" },
+    { name: "localgpt_gen_evaluate", label: "Gen Evaluate Scene", desc: "Screenshot scene with optional highlighting for LLM self-evaluation via 1-shot CLI. Requires localgpt-gen running.", schema: evaluateSceneSchema, fn: genEvaluateScene, snippet: "localgpt_gen_evaluate: capture annotated screenshot for quality review" },
+    { name: "localgpt_gen_refine", label: "Gen Auto Refine", desc: "Automated evaluate-and-adjust loop via 1-shot CLI. Requires localgpt-gen running.", schema: autoRefineSchema, fn: genAutoRefine, snippet: "localgpt_gen_refine: auto-improve scene via screenshot loop" },
+    { name: "localgpt_gen_navmesh", label: "Gen Build Navmesh", desc: "Build walkability grid for current terrain via 1-shot CLI. Requires localgpt-gen running.", schema: buildNavmeshSchema, fn: genBuildNavmesh, snippet: "localgpt_gen_navmesh: build navmesh after blockout" },
+    { name: "localgpt_gen_regenerate", label: "Gen Regenerate", desc: "Regenerate regions after blockout edits, preserving manual placements via 1-shot CLI. Requires localgpt-gen running.", schema: regenerateSchema, fn: genRegenerate, snippet: "localgpt_gen_regenerate: refresh regions after blockout changes" },
+    // Export & world skills
+    { name: "localgpt_gen_export_screenshot", label: "Gen Export Screenshot", desc: "Export viewport screenshot to file via 1-shot CLI. Requires localgpt-gen running.", schema: exportScreenshotSchema, fn: genExportScreenshot, snippet: "localgpt_gen_export_screenshot: export screenshot to file" },
+    { name: "localgpt_gen_export_gltf", label: "Gen Export glTF", desc: "Export scene as glTF/GLB via 1-shot CLI. Requires localgpt-gen running.", schema: exportGltfSchema, fn: genExportGltf, snippet: "localgpt_gen_export_gltf: export scene to glTF file" },
+    { name: "localgpt_gen_export_html", label: "Gen Export HTML", desc: "Export scene as self-contained HTML via 1-shot CLI. Requires localgpt-gen running.", schema: exportHtmlSchema, fn: genExportHtml, snippet: "localgpt_gen_export_html: export scene to HTML file with Three.js" },
+    { name: "localgpt_gen_save", label: "Gen Save World", desc: "Save scene to a world skill via 1-shot CLI. Requires localgpt-gen running.", schema: saveWorldSchema, fn: genSaveWorld, snippet: "localgpt_gen_save: save current scene as a reusable world skill" },
+    { name: "localgpt_gen_load", label: "Gen Load World", desc: "Load a saved world via 1-shot CLI. Requires localgpt-gen running.", schema: loadWorldSchema, fn: genLoadWorld, snippet: "localgpt_gen_load: load a previously saved world" },
+    // Scene management
+    { name: "localgpt_gen_clear", label: "Gen Clear Scene", desc: "Clear all entities, behaviors, and audio via 1-shot CLI. Requires localgpt-gen running.", schema: clearSceneSchema, fn: genClearScene, snippet: "localgpt_gen_clear: clear the entire scene" },
+    { name: "localgpt_gen_undo", label: "Gen Undo", desc: "Undo last scene edit via 1-shot CLI. Requires localgpt-gen running.", schema: undoSchema, fn: genUndo, snippet: "localgpt_gen_undo: undo last scene edit" },
+    { name: "localgpt_gen_redo", label: "Gen Redo", desc: "Redo previously undone edit via 1-shot CLI. Requires localgpt-gen running.", schema: redoSchema, fn: genRedo, snippet: "localgpt_gen_redo: redo last undone edit" },
+  ];
 
-  pi.registerTool({
-    name: "localgpt_memory_save",
-    label: "LocalGPT Memory Save",
-    description: "Append curated long-term knowledge to LocalGPT MEMORY.md.",
-    promptSnippet: "localgpt_memory_save: append durable cross-session knowledge to LocalGPT MEMORY.md",
-    promptGuidelines: [
-      "Use for stable preferences and facts that should persist across Pi sessions.",
-      "Prefer localgpt_memory_log for ephemeral daily notes.",
-    ],
-    parameters: writeParameters,
-    async execute(_toolCallId, params) {
-      const result = await runMemorySave(params.content);
-      return {
-        content: [{ type: "text", text: `Appended to ${result.path}` }],
-        details: result,
-      };
-    },
-  });
-
-  pi.registerTool({
-    name: "localgpt_memory_log",
-    label: "LocalGPT Memory Log",
-    description: "Append to today's LocalGPT daily log (memory/YYYY-MM-DD.md).",
-    promptSnippet: "localgpt_memory_log: append a timestamped note to today's LocalGPT daily log",
-    promptGuidelines: [
-      "Use for session notes and work-in-progress context.",
-      "Use localgpt_memory_save for durable long-term facts.",
-    ],
-    parameters: writeParameters,
-    async execute(_toolCallId, params) {
-      const result = await runMemoryLog(params.content);
-      return {
-        content: [{ type: "text", text: `Appended to ${result.path}` }],
-        details: result,
-      };
-    },
-  });
+  for (const { name, label, desc, schema, fn, snippet } of genToolMeta) {
+    pi.registerTool({
+      name,
+      label,
+      description: desc,
+      promptSnippet: snippet,
+      promptGuidelines: [
+        "1-shot CLI via `localgpt-gen mcp-server --connect`. No persistent process.",
+        "Requires localgpt-gen running interactively (Bevy window) for relay to work.",
+      ],
+      parameters: schema,
+      async execute(_toolCallId, params, signal) {
+        try {
+          return await fn(params as Record<string, unknown>, { signal });
+        } catch (error) {
+          const message = error instanceof Error ? error.message : String(error);
+          return {
+            content: [{ type: "text", text: `${name} error: ${message}` }],
+            isError: true,
+            details: { error: message },
+          };
+        }
+      },
+    });
+  }
 }
