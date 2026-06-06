@@ -8,7 +8,7 @@
 [![Pi package](https://img.shields.io/badge/pi-package-purple.svg)](https://pi.dev/packages)
 [![Trusted Publishing](https://img.shields.io/badge/npm-Trusted%20Publishing-blue.svg)](docs/release.md)
 
-> 50 curated tools for LocalGPT memory + Gen 3D world building, via unified 1-shot MCP bridge.
+> 50 curated tools for LocalGPT Gen 3D world building, via unified 1-shot MCP bridge.
 
 ## What this is
 
@@ -20,7 +20,6 @@ All tools use a **1-shot MCP bridge**: each call spawns `localgpt-gen mcp-server
 
 ## Features
 
-- **Memory tools** — semantic + keyword search, read, save, daily log via MCP bridge
 - **Scene building** — spawn/modify/delete entities, camera, lighting, environment
 - **WorldGen pipeline** — text description → layout plan → blockout → populate → evaluate → refine
 - **Game mechanics** — player, NPC, triggers, teleporters, collectibles, doors, physics
@@ -52,9 +51,8 @@ pi -e .
 
 1. Start `localgpt-gen` interactively (Bevy window opens)
 2. Check relay: `/localgpt:gen-status` or `localgpt_gen_status`
-3. Search memory: `localgpt_memory_search` → `localgpt_memory_get`
-4. Build world: `localgpt_gen_plan` → `localgpt_gen_blockout` → `localgpt_gen_populate`
-5. Save design: `localgpt_memory_save`
+3. Build world: `localgpt_gen_plan` → `localgpt_gen_blockout` → `localgpt_gen_populate`
+4. Save design: `localgpt_memory_save`
 
 See [`skills/localgpt-gen/SKILL.md`](skills/localgpt-gen/SKILL.md) for the full workflow guide.
 
@@ -69,15 +67,6 @@ See [`skills/localgpt-gen/SKILL.md`](skills/localgpt-gen/SKILL.md) for the full 
 | `docs/` | Supporting docs (release, manual test checklist) |
 
 ## Tools
-
-### Memory
-
-| Tool | Purpose |
-|---|---|
-| `localgpt_memory_search` | Search workspace memory |
-| `localgpt_memory_get` | Read entry by ID |
-| `localgpt_memory_save` | Save durable knowledge |
-| `localgpt_memory_log` | Append to daily log |
 
 ### Status
 
