@@ -1,88 +1,104 @@
-# PACKAGE_DISPLAY_NAME
+# Pi LocalGPT
 
-[![CI](https://github.com/OWNER/REPO/actions/workflows/ci.yml/badge.svg)](https://github.com/OWNER/REPO/actions/workflows/ci.yml)
-[![Publish](https://github.com/OWNER/REPO/actions/workflows/publish.yml/badge.svg)](https://github.com/OWNER/REPO/actions/workflows/publish.yml)
-[![npm version](https://img.shields.io/npm/v/PACKAGE_NAME.svg)](https://www.npmjs.com/package/PACKAGE_NAME)
-[![npm downloads](https://img.shields.io/npm/dm/PACKAGE_NAME.svg)](https://www.npmjs.com/package/PACKAGE_NAME)
+[![CI](https://github.com/eiei114/pi-localgpt/actions/workflows/ci.yml/badge.svg)](https://github.com/eiei114/pi-localgpt/actions/workflows/ci.yml)
+[![Publish](https://github.com/eiei114/pi-localgpt/actions/workflows/publish.yml/badge.svg)](https://github.com/eiei114/pi-localgpt/actions/workflows/publish.yml)
+[![npm version](https://img.shields.io/npm/v/pi-localgpt.svg)](https://www.npmjs.com/package/pi-localgpt)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 [![Pi package](https://img.shields.io/badge/pi-package-purple.svg)](https://pi.dev/packages)
 [![Trusted Publishing](https://img.shields.io/badge/npm-Trusted%20Publishing-blue.svg)](docs/release.md)
 
-> One-line pitch for this TypeScript-first Pi package.
+> LocalGPT workspace memory for Pi — direct file access, no `localgpt` binary spawn.
 
 ## What this is
 
-Briefly explain what this TypeScript-first package adds to Pi and who should use it.
+`pi-localgpt` gives Pi agents curated tools to read and write **[LocalGPT](https://localgpt.app/)** workspace memory (`MEMORY.md`, daily logs).
 
-## Features
+- **No** per-call `localgpt mcp-server` spawn
+- **No** `.mcp.json` resident MCP requirement
+- **No** `cargo install localgpt` required for memory tools
+- Keyword search over workspace markdown (not upstream semantic ranking)
 
-- Feature 1
-- Feature 2
-- Feature 3
+> **Not** the unrelated Python RAG project also named "LocalGPT".
+
+## Prerequisites
+
+A LocalGPT workspace with markdown memory files. Typical layout:
+
+```text
+<workspace>/
+├── MEMORY.md
+└── memory/
+    └── YYYY-MM-DD.md
+```
+
+Paths resolve from:
+
+- `%APPDATA%/localgpt/config.toml` (Windows) or `~/.config/localgpt/config.toml` (macOS/Linux)
+- `[memory].workspace` in config, or defaults under `%APPDATA%/localgpt/workspace` / `~/.local/share/localgpt/workspace`
+- Overrides: `LOCALGPT_CONFIG`, `LOCALGPT_WORKSPACE`
+
+Optional: install upstream [localgpt](https://github.com/localgpt-app/localgpt) if you also want chat, daemon, or hybrid semantic search outside Pi.
 
 ## Install
 
-Install the published npm package with Pi:
-
 ```bash
-pi install npm:PACKAGE_NAME
+pi install npm:pi-localgpt
 ```
 
-Replace `PACKAGE_NAME` with the exact `name` from `package.json`.
-For a scoped npm package, keep the `npm:` prefix:
+Local development:
 
 ```bash
-pi install npm:@your-scope/your-pi-package
-```
-
-Pin a specific version when you want reproducible installs:
-
-```bash
-pi install npm:PACKAGE_NAME@0.1.0
-```
-
-Install into the current project instead of your user Pi settings:
-
-```bash
-pi install npm:PACKAGE_NAME -l
-```
-
-Or install from GitHub:
-
-```bash
-pi install git:github.com/OWNER/REPO
-```
-
-Try it without permanently installing:
-
-```bash
-pi -e npm:PACKAGE_NAME
-```
-
-## Quick start
-
-Try this package locally:
-
-```bash
+git clone https://github.com/eiei114/pi-localgpt.git
+cd pi-localgpt
+npm install
 pi -e .
 ```
 
-Then run:
+## Tools
 
-```txt
-/your-command
+| Tool | Purpose |
+|---|---|
+| `localgpt_status` | Config + workspace + file readiness |
+| `localgpt_memory_search` | Keyword search over workspace markdown |
+| `localgpt_memory_get` | Read line range from a memory file |
+| `localgpt_memory_save` | Append to `MEMORY.md` |
+| `localgpt_memory_log` | Append to today's daily log |
+
+## Commands
+
+| Command | Purpose |
+|---|---|
+| `/localgpt:status` | Show workspace status |
+| `/localgpt:search` | Prompt for a memory query |
+| `/localgpt:remember` | Prompt for text → `MEMORY.md` |
+
+## Recommended workflow
+
+1. Run `localgpt_status` when workspace location is uncertain.
+2. `localgpt_memory_search` for recall.
+3. `localgpt_memory_get` when snippets are too short.
+4. `localgpt_memory_save` for durable facts; `localgpt_memory_log` for daily notes.
+
+## Alternative: upstream MCP
+
+If you prefer upstream hybrid search and official tool semantics, register LocalGPT's MCP server directly:
+
+```json
+{
+  "mcpServers": {
+    "localgpt": {
+      "command": "localgpt",
+      "args": ["mcp-server"]
+    }
+  }
+}
 ```
 
-## Package contents
+That spawns the Rust binary per MCP session. `pi-localgpt` avoids that by reading files directly.
 
-| Path | Purpose |
-|---|---|
-| `extensions/` | Pi TypeScript extension entrypoints (`*.ts` and `index.ts`) |
-| `lib/` | Shared TypeScript helpers |
-| `skills/` | Agent Skills |
-| `prompts/` | Prompt templates |
-| `themes/` | Pi themes |
-| `docs/` | Optional supporting docs (usage, examples, release, ADRs) |
+## Manual test checklist
+
+See [`docs/manual-test-checklist.md`](docs/manual-test-checklist.md).
 
 ## Development
 
@@ -91,73 +107,22 @@ npm install
 npm run ci
 ```
 
-## Development flow
-
-Use this default flow when building a new Pi extension OSS project from this template:
-
-1. Create the Vault project notes under `4_Project/<ProjectName>/`.
-2. Add `CONTEXT.md`, `README.md`, `ROADMAP.md`, `Docs/`, `Issues/`, and `Progress/`.
-3. Write the PRD in `4_Project/<ProjectName>/Docs/`.
-4. Split approved tracer-bullet issues into `4_Project/<ProjectName>/Issues/`.
-5. Implement in the OSS repo.
-6. Run `npm run ci`, `npm test`, and `npm pack --dry-run`.
-7. Release with Trusted Publishing.
-8. Save release notes and follow-up decisions back to the Vault project.
-
-Short version:
-
-```txt
-Vault notes -> PRD -> Issues -> implement -> ci/check -> release -> save learnings
-```
-
 ## Release
 
-This package is set up for npm Trusted Publishing, so no `NPM_TOKEN` is required.
-
-```bash
-npm version patch
-git push
-```
-
-See [`docs/release.md`](docs/release.md) for setup details.
-
-## Docs
-
-`docs/` is optional supporting documentation, not a fixed six-file set. README stays the GitHub/npm entrypoint; add `docs/*.md` only when they help users or maintainers.
-
-After creating a repository from this template:
-
-1. Follow [`docs/template-checklist.md`](docs/template-checklist.md) for setup.
-2. Run the **post-generation docs cleanup** in that checklist: delete or merge template bootstrap docs that no longer add project value.
-
-Useful docs to keep when they add value:
-
-- [`docs/examples.md`](docs/examples.md) — examples for extensions, skills, prompts, and themes
-- [`docs/release.md`](docs/release.md) — Trusted Publishing details (README Release summarizes the flow)
-- `docs/usage.md` — create when usage does not fit in README
-
-Optional maintainer guidance (not a public-user navigation target in mature repos):
-
-- [`docs/template-checklist.md`](docs/template-checklist.md)
-
-Template bootstrap docs to delete or merge after setup unless they still teach something project-specific:
-
-- `docs/github-template.md`
-- `docs/repository-settings.md`
-- `docs/typescript.md`
+npm Trusted Publishing via GitHub Actions. See [`docs/release.md`](docs/release.md).
 
 ## Security
 
-Pi packages can execute code with your local permissions. Review extensions before installing third-party packages.
+Pi packages execute with your local permissions. Memory append tools can modify files under your LocalGPT workspace.
 
-For vulnerability reporting, see [`SECURITY.md`](SECURITY.md).
+See [`SECURITY.md`](SECURITY.md).
 
 ## Links
 
-- npm: https://www.npmjs.com/package/PACKAGE_NAME
-- GitHub: https://github.com/OWNER/REPO
-- Issues: https://github.com/OWNER/REPO/issues
+- npm: https://www.npmjs.com/package/pi-localgpt
+- GitHub: https://github.com/eiei114/pi-localgpt
+- Upstream: https://github.com/localgpt-app/localgpt
 
 ## License
 
-MIT\n
+MIT
