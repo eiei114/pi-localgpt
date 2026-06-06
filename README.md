@@ -68,13 +68,14 @@ pi -e .
 
 | Command | Purpose |
 |---|---|
+| `/localgpt:init` | Create workspace + MEMORY.md + memory/ dir |
 | `/localgpt:status` | Show workspace status |
 | `/localgpt:search` | Prompt for a memory query |
 | `/localgpt:remember` | Prompt for text → `MEMORY.md` |
 
 ## Recommended workflow
 
-1. Run `localgpt_status` when workspace location is uncertain.
+1. Run `/localgpt:init` to create the workspace on first use.
 2. `localgpt_memory_search` for recall.
 3. `localgpt_memory_get` when snippets are too short.
 4. `localgpt_memory_save` for durable facts; `localgpt_memory_log` for daily notes.

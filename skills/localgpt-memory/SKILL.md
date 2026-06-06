@@ -26,7 +26,8 @@ This is **not** the unrelated Python RAG project also called "LocalGPT".
 
 ## Recommended flow
 
-1. `localgpt_status` — confirm workspace path and files.
+1. `/localgpt:init` — create workspace if missing.
+2. `localgpt_status` — confirm workspace path and files.
 2. `localgpt_memory_search` — keyword recall.
 3. `localgpt_memory_get` — expand a hit when snippets are too short.
 4. `localgpt_memory_save` or `localgpt_memory_log` — persist new knowledge.
@@ -40,6 +41,7 @@ This is **not** the unrelated Python RAG project also called "LocalGPT".
 
 ## Commands
 
+- `/localgpt:init`
 - `/localgpt:status`
 - `/localgpt:search`
 - `/localgpt:remember`

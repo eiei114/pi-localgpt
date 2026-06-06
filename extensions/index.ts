@@ -8,6 +8,7 @@ import {
   runMemorySave,
   runMemorySearch,
 } from "../lib/localgpt-memory.ts";
+import { formatInitResult, initLocalgptWorkspace } from "../lib/localgpt-init.ts";
 import { formatLocalgptStatus, inspectLocalgptStatus } from "../lib/status.ts";
 
 const statusParameters = Type.Object({});
@@ -35,6 +36,18 @@ export default function (pi: ExtensionAPI) {
     handler: async (_args, ctx) => {
       const summary = await inspectLocalgptStatus();
       ctx.ui.notify(formatLocalgptStatus(summary), summary.ok ? "info" : "warning");
+    },
+  });
+
+  pi.registerCommand("localgpt:init", {
+    description: "Create LocalGPT workspace directory, MEMORY.md, and memory/ folder",
+    handler: async (_args, ctx) => {
+      try {
+        const result = await initLocalgptWorkspace();
+        ctx.ui.notify(formatInitResult(result), "info");
+      } catch (error) {
+        ctx.ui.notify(error instanceof Error ? error.message : String(error), "error");
+      }
     },
   });
 
