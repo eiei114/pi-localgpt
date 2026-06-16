@@ -1,7 +1,7 @@
 {
   "name": "pi-localgpt",
   "version": "0.4.1",
-  "description": "Pi extension for LocalGPT — unified MCP bridge. 50 curated tools for memory + Gen 3D world building.",
+  "description": "Pi extension for LocalGPT — unified MCP bridge. 50 curated tools for design-log + Gen 3D world building.",
   "type": "module",
   "license": "MIT",
   "author": "Keisu",
@@ -11,7 +11,7 @@
     "agent-skill",
     "typescript",
     "localgpt",
-    "memory",
+    "design-log",
     "worldgen",
     "3d",
     "bevy"
