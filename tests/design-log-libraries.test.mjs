@@ -95,6 +95,20 @@ workspace = "../workspace" # relative to config file
   assert.equal(config.workspace, path.resolve("/tmp/workspace"));
 });
 
+test("resolveLocalGptConfig preserves escaped backslashes in double-quoted workspace strings", async () => {
+  const configPath = path.resolve("/tmp/localgpt-config/config.toml");
+  const fs = new MemFs({
+    [configPath]: String.raw`
+[design-log]
+workspace = "C:\\Users\\name"
+`,
+  });
+
+  const config = await resolveLocalGptConfig({ configPath, cwd: "/ignored", fs, env: {} });
+
+  assert.equal(config.workspace, path.resolve("/tmp/localgpt-config", "C:\\Users\\name"));
+});
+
 test("resolveLocalGptConfig falls back to XDG default workspace", async () => {
   const fs = new MemFs();
   const config = await resolveLocalGptConfig({
@@ -150,6 +164,23 @@ test("readDesignLogRange and readDesignLogEntry read guarded 1-based line ranges
   await assert.rejects(() => readDesignLogRange({ workspace, file: "../outside.md", fs }), /escapes/);
 });
 
+test("readDesignLogRange returns replayable ids for empty files", async () => {
+  const workspace = path.resolve("/tmp/ws");
+  const fs = new MemFs({
+    [path.join(workspace, "DESIGN-LOG.md")]: "",
+  });
+
+  const range = await readDesignLogRange({ workspace, fs });
+
+  assert.equal(range.id, "DESIGN-LOG.md:1-1");
+  assert.equal(range.line_start, 1);
+  assert.equal(range.line_end, 1);
+  assert.equal(range.content, "");
+
+  const replayed = await readDesignLogEntry(workspace, range.id, fs);
+  assert.deepEqual(replayed, range);
+});
+
 test("saveDesignLog and logDesignLog append through fs and return readable ids", async () => {
   const workspace = path.resolve("/tmp/ws");
   const fs = new MemFs({ [path.join(workspace, "DESIGN-LOG.md")]: "# Design Log\n" });
@@ -169,4 +200,14 @@ test("saveDesignLog and logDesignLog append through fs and return readable ids",
   assert.ok(savedEntry.content.includes("Use TypeScript modules."));
   assert.ok(loggedEntry.content.includes("## 04:05:06"));
   assert.ok(loggedEntry.content.includes("Implemented design-log libraries."));
+});
+
+test("searchDesignLog validates limit and contextLines", async () => {
+  const workspace = path.resolve("/tmp/ws");
+  const fs = new MemFs({
+    [path.join(workspace, "DESIGN-LOG.md")]: "hello world",
+  });
+
+  await assert.rejects(() => searchDesignLog({ workspace, query: "hello", fs, limit: -1 }), /Invalid limit/);
+  await assert.rejects(() => searchDesignLog({ workspace, query: "hello", fs, contextLines: 1.5 }), /Invalid contextLines/);
 });

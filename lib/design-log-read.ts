@@ -42,13 +42,13 @@ export async function readDesignLogRange(options: ReadDesignLogRangeOptions): Pr
   const content = await readFs.readFile(absolutePath, "utf8");
   const lines = splitLines(content);
   const startLine = options.startLine ?? 1;
-  const endLine = options.endLine ?? lines.length;
+  const endLine = options.endLine ?? Math.max(startLine, lines.length);
 
   if (!Number.isInteger(startLine) || startLine < 1) throw new Error(`Invalid startLine: ${startLine}`);
   if (!Number.isInteger(endLine) || endLine < startLine) throw new Error(`Invalid endLine: ${endLine}`);
 
   const selectedLines = lines.slice(startLine - 1, Math.min(endLine, lines.length));
-  const actualEnd = selectedLines.length === 0 ? startLine - 1 : startLine + selectedLines.length - 1;
+  const actualEnd = selectedLines.length === 0 ? startLine : startLine + selectedLines.length - 1;
   return {
     id: encodeDesignLogId(relativeFile, startLine, actualEnd),
     file: relativeFile,

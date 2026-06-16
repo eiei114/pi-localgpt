@@ -69,12 +69,14 @@ function unquoteTomlString(raw: string): string {
   if ((value.startsWith('"') && value.endsWith('"')) || (value.startsWith("'") && value.endsWith("'"))) {
     const body = value.slice(1, -1);
     if (value.startsWith("'")) return body;
+    const backslashPlaceholder = "__PI_LOCALGPT_ESCAPED_BACKSLASH__";
     return body
+      .replace(/\\\\/g, backslashPlaceholder)
       .replace(/\\n/g, "\n")
       .replace(/\\t/g, "\t")
       .replace(/\\r/g, "\r")
       .replace(/\\"/g, '"')
-      .replace(/\\\\/g, "\\");
+      .replaceAll(backslashPlaceholder, "\\");
   }
   return value;
 }

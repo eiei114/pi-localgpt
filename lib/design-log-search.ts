@@ -77,6 +77,10 @@ function splitLines(content: string): string[] {
   return content.length === 0 ? [] : content.split(/\r?\n/);
 }
 
+function assertNonNegativeInteger(name: string, value: number): void {
+  if (!Number.isInteger(value) || value < 0) throw new Error(`Invalid ${name}: ${value}`);
+}
+
 export async function searchDesignLog(options: DesignLogSearchOptions): Promise<DesignLogSearchResult[]> {
   const tokens = tokenize(options.query);
   if (tokens.length === 0) return [];
@@ -85,6 +89,9 @@ export async function searchDesignLog(options: DesignLogSearchOptions): Promise<
   const workspace = path.resolve(options.workspace);
   const limit = options.limit ?? 10;
   const contextLines = options.contextLines ?? 2;
+  assertNonNegativeInteger("limit", limit);
+  assertNonNegativeInteger("contextLines", contextLines);
+  if (limit === 0) return [];
   const files = await listMarkdownFiles(searchFs, workspace, workspace);
   const results: DesignLogSearchResult[] = [];
 

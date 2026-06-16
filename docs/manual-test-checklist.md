@@ -12,7 +12,7 @@ Run after `pi -e .` or `pi install` with a local package path.
 - [ ] `/localgpt:gen-status` shows binary found + relay reachable + tool count.
 - [ ] `localgpt_gen_status` returns same info as a tool.
 
-## Memory tools
+## Design log tools
 
 - [ ] `localgpt_design_log_search` finds known phrases.
 - [ ] `localgpt_design_log_get` returns full entry by ID from search results.
