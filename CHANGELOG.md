@@ -2,6 +2,14 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.4.2] - 2026-06-17
+
+### Changed
+
+- Renamed LocalGPT "memory" user-facing wording to "design log" across docs and tool descriptions.
+- Added backward-compatible `localgpt_memory_*` legacy aliases so existing workflows continue to work while newer docs point to `localgpt_design_log_*` tools.
+- Added LocalGPT workspace helper libraries and tests for design-log path/config handling.
+
 ## [0.4.0] - 2026-06-06
 
 ### Added
