@@ -30,10 +30,10 @@ import {
   clearSceneSchema, genClearScene,
   undoSchema, genUndo,
   redoSchema, genRedo,
-  memorySearchSchema, genMemorySearch,
-  memoryGetSchema, genMemoryGet,
-  memorySaveSchema, genMemorySave,
-  memoryLogSchema, genMemoryLog,
+  designLogSearchSchema, genDesignLogSearch,
+  designLogGetSchema, genDesignLogGet,
+  designLogSaveSchema, genDesignLogSave,
+  designLogLogSchema, genDesignLogLog,
   spawnPlayerSchema, genSpawnPlayer,
   addNpcSchema, genAddNpc,
   setNpcDialogueSchema, genSetNpcDialogue,
@@ -72,7 +72,7 @@ export default function (pi: ExtensionAPI) {
   // ── Generic gen call ─────────────────────────────────────────────
 
   const genCallParameters = Type.Object({
-    tool: Type.String({ description: "Gen or memory tool name, e.g. gen_screenshot, gen_scene_info, gen_spawn_primitive, memory_search" }),
+    tool: Type.String({ description: "Gen or design-log tool name, e.g. gen_screenshot, gen_scene_info, gen_spawn_primitive, memory_search" }),
     args: Type.Optional(Type.Record(Type.String(), Type.Unknown(), { description: "Arguments for the tool" })),
   });
 
@@ -80,7 +80,7 @@ export default function (pi: ExtensionAPI) {
     name: "localgpt_gen_status",
     label: "LocalGPT Gen Status",
     description: "Check localgpt-gen binary availability and relay reachability. Each check is a 1-shot spawn — no persistent process.",
-    promptSnippet: "localgpt_gen_status: check if localgpt-gen is available before calling gen or memory tools",
+    promptSnippet: "localgpt_gen_status: check if localgpt-gen is available before calling gen or design-log tools",
     promptGuidelines: [
       "Call before any localgpt_gen_call to verify the binary exists and relay is reachable.",
       "Returns binary version, relay status, and available tool count.",
@@ -105,7 +105,7 @@ export default function (pi: ExtensionAPI) {
       "Each call spawns `localgpt-gen mcp-server --connect`, sends one MCP request, then exits. No persistent process.",
       "Requires localgpt-gen running interactively (the Bevy window) for --connect relay to work.",
       "Use localgpt_gen_status to check availability first.",
-      "All gen + memory tools available via this generic wrapper.",
+      "All gen + design-log tools available via this generic wrapper.",
     ],
     parameters: genCallParameters,
     async execute(_toolCallId, params, signal) {
@@ -134,11 +134,15 @@ export default function (pi: ExtensionAPI) {
   // ── Curated tools ─────────────────────────────────────────────────
 
   const genToolMeta = [
-    // Memory
-    { name: "localgpt_memory_search", label: "Memory Search", desc: "Search LocalGPT workspace memory (semantic + keyword) via 1-shot CLI. Requires localgpt-gen running.", schema: memorySearchSchema, fn: genMemorySearch, snippet: "localgpt_memory_search: recall cross-session notes from LocalGPT workspace memory" },
-    { name: "localgpt_memory_get", label: "Memory Get", desc: "Read a specific LocalGPT memory entry by ID via 1-shot CLI. Requires localgpt-gen running.", schema: memoryGetSchema, fn: genMemoryGet, snippet: "localgpt_memory_get: read full memory entry from search result ID" },
-    { name: "localgpt_memory_save", label: "Memory Save", desc: "Save durable cross-session knowledge to LocalGPT memory via 1-shot CLI. Requires localgpt-gen running.", schema: memorySaveSchema, fn: genMemorySave, snippet: "localgpt_memory_save: persist stable preferences and facts across Pi sessions" },
-    { name: "localgpt_memory_log", label: "Memory Log", desc: "Append a timestamped daily log entry via 1-shot CLI. Requires localgpt-gen running.", schema: memoryLogSchema, fn: genMemoryLog, snippet: "localgpt_memory_log: append a timestamped note to today's LocalGPT daily log" },
+    // Design log
+    { name: "localgpt_design_log_search", label: "Design Log Search", desc: "Search LocalGPT workspace design log (semantic + keyword) via 1-shot CLI. Requires localgpt-gen running.", schema: designLogSearchSchema, fn: genDesignLogSearch, snippet: "localgpt_design_log_search: recall prior level-design notes from the LocalGPT design log" },
+    { name: "localgpt_design_log_get", label: "Design Log Get", desc: "Read a specific LocalGPT design log entry by ID via 1-shot CLI. Requires localgpt-gen running.", schema: designLogGetSchema, fn: genDesignLogGet, snippet: "localgpt_design_log_get: read a full design log entry from a search result ID" },
+    { name: "localgpt_design_log_save", label: "Design Log Save", desc: "Save durable cross-session level-design context to the LocalGPT design log via 1-shot CLI. Requires localgpt-gen running.", schema: designLogSaveSchema, fn: genDesignLogSave, snippet: "localgpt_design_log_save: persist stable level-design decisions and preferences across Pi sessions" },
+    { name: "localgpt_design_log_log", label: "Design Log Log", desc: "Append a timestamped daily design log entry via 1-shot CLI. Requires localgpt-gen running.", schema: designLogLogSchema, fn: genDesignLogLog, snippet: "localgpt_design_log_log: append a timestamped note to today's LocalGPT design log" },
+    { name: "localgpt_memory_search", label: "Memory Search (Legacy)", desc: "Legacy alias for localgpt_design_log_search. Requires localgpt-gen running.", schema: designLogSearchSchema, fn: genDesignLogSearch, snippet: "localgpt_memory_search: legacy alias for localgpt_design_log_search" },
+    { name: "localgpt_memory_get", label: "Memory Get (Legacy)", desc: "Legacy alias for localgpt_design_log_get. Requires localgpt-gen running.", schema: designLogGetSchema, fn: genDesignLogGet, snippet: "localgpt_memory_get: legacy alias for localgpt_design_log_get" },
+    { name: "localgpt_memory_save", label: "Memory Save (Legacy)", desc: "Legacy alias for localgpt_design_log_save. Requires localgpt-gen running.", schema: designLogSaveSchema, fn: genDesignLogSave, snippet: "localgpt_memory_save: legacy alias for localgpt_design_log_save" },
+    { name: "localgpt_memory_log", label: "Memory Log (Legacy)", desc: "Legacy alias for localgpt_design_log_log. Requires localgpt-gen running.", schema: designLogLogSchema, fn: genDesignLogLog, snippet: "localgpt_memory_log: legacy alias for localgpt_design_log_log" },
     // Player & NPC
     { name: "localgpt_gen_spawn_player", label: "Gen Spawn Player", desc: "Spawn controllable player character via 1-shot CLI. Requires localgpt-gen running.", schema: spawnPlayerSchema, fn: genSpawnPlayer, snippet: "localgpt_gen_spawn_player: spawn a player character with movement and camera" },
     { name: "localgpt_gen_add_npc", label: "Gen Add NPC", desc: "Create NPC with behavior via 1-shot CLI. Requires localgpt-gen running.", schema: addNpcSchema, fn: genAddNpc, snippet: "localgpt_gen_add_npc: create an NPC with idle/patrol/wander behavior" },

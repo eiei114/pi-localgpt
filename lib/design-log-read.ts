@@ -1,11 +1,11 @@
 import * as fs from "node:fs/promises";
-import { memoryFilePath, relativeWorkspacePath, workspacePath } from "./localgpt-workspace.ts";
+import { designLogFilePath, relativeWorkspacePath, workspacePath } from "./localgpt-workspace.ts";
 
-export interface MemoryReadFs {
+export interface DesignLogReadFs {
   readFile(filePath: string, encoding: BufferEncoding): Promise<string>;
 }
 
-export interface MemoryRange {
+export interface DesignLogRange {
   id: string;
   file: string;
   content: string;
@@ -13,21 +13,21 @@ export interface MemoryRange {
   line_end: number;
 }
 
-export interface ReadMemoryRangeOptions {
+export interface ReadDesignLogRangeOptions {
   workspace: string;
   file?: string;
   startLine?: number;
   endLine?: number;
-  fs?: MemoryReadFs;
+  fs?: DesignLogReadFs;
 }
 
-export function encodeMemoryId(file: string, lineStart: number, lineEnd: number): string {
+export function encodeDesignLogId(file: string, lineStart: number, lineEnd: number): string {
   return `${file}:${lineStart}-${lineEnd}`;
 }
 
-export function parseMemoryId(id: string): { file: string; lineStart: number; lineEnd: number } {
+export function parseDesignLogId(id: string): { file: string; lineStart: number; lineEnd: number } {
   const match = id.match(/^(.+):(\d+)-(\d+)$/);
-  if (!match) throw new Error(`Invalid memory id: ${id}`);
+  if (!match) throw new Error(`Invalid design log id: ${id}`);
   return { file: match[1]!, lineStart: Number.parseInt(match[2]!, 10), lineEnd: Number.parseInt(match[3]!, 10) };
 }
 
@@ -35,9 +35,9 @@ function splitLines(content: string): string[] {
   return content.length === 0 ? [] : content.split(/\r?\n/);
 }
 
-export async function readMemoryRange(options: ReadMemoryRangeOptions): Promise<MemoryRange> {
+export async function readDesignLogRange(options: ReadDesignLogRangeOptions): Promise<DesignLogRange> {
   const readFs = options.fs ?? fs;
-  const absolutePath = options.file ? workspacePath(options.workspace, options.file) : memoryFilePath(options.workspace);
+  const absolutePath = options.file ? workspacePath(options.workspace, options.file) : designLogFilePath(options.workspace);
   const relativeFile = relativeWorkspacePath(options.workspace, absolutePath);
   const content = await readFs.readFile(absolutePath, "utf8");
   const lines = splitLines(content);
@@ -50,7 +50,7 @@ export async function readMemoryRange(options: ReadMemoryRangeOptions): Promise<
   const selectedLines = lines.slice(startLine - 1, Math.min(endLine, lines.length));
   const actualEnd = selectedLines.length === 0 ? startLine - 1 : startLine + selectedLines.length - 1;
   return {
-    id: encodeMemoryId(relativeFile, startLine, actualEnd),
+    id: encodeDesignLogId(relativeFile, startLine, actualEnd),
     file: relativeFile,
     content: selectedLines.join("\n"),
     line_start: startLine,
@@ -58,7 +58,7 @@ export async function readMemoryRange(options: ReadMemoryRangeOptions): Promise<
   };
 }
 
-export async function readMemoryEntry(workspace: string, id: string, readFs?: MemoryReadFs): Promise<MemoryRange> {
-  const parsed = parseMemoryId(id);
-  return readMemoryRange({ workspace, file: parsed.file, startLine: parsed.lineStart, endLine: parsed.lineEnd, fs: readFs });
+export async function readDesignLogEntry(workspace: string, id: string, readFs?: DesignLogReadFs): Promise<DesignLogRange> {
+  const parsed = parseDesignLogId(id);
+  return readDesignLogRange({ workspace, file: parsed.file, startLine: parsed.lineStart, endLine: parsed.lineEnd, fs: readFs });
 }

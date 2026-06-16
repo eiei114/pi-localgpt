@@ -9,7 +9,7 @@ const {
   genDeleteEntity, genSetCamera, genPlanLayout, genApplyBlockout,
   genModifyBlockout, genPopulateRegion, genEvaluateScene, genAutoRefine,
   genUndo,
-  genMemorySearch, genMemoryGet, genMemorySave, genMemoryLog,
+  genDesignLogSearch, genDesignLogGet, genDesignLogSave, genDesignLogLog,
   genSpawnPlayer, genAddNpc, genSetNpcDialogue,
   genAddTrigger, genAddTeleporter, genAddCollectible, genAddDoor,
   genSetPhysics, genAddCollider, genAddForce, genSetGravity,
@@ -293,46 +293,46 @@ test("genUndo calls gen_undo", async () => {
   assert.ok(result.content[0].text.includes("undone"));
 });
 
-// ── Memory tool wrapper tests ──────────────────────────────────────
+// ── Design log tool wrapper tests ──────────────────────────────────
 
-test("genMemorySearch calls memory_search via 1-shot", async () => {
+test("genDesignLogSearch calls memory_search via 1-shot", async () => {
   const responses = new Map([
     ["initialize", { protocolVersion: "2024-11-05" }],
     ["memory_search", { results: [{ id: "mem_1", snippet: "Project uses Rust + Bevy" }] }],
   ]);
   const mock = createMockSpawn(responses);
-  const result = await genMemorySearch({ query: "Rust" }, { spawnFn: mock.spawnFn, timeoutMs: 5000 });
+  const result = await genDesignLogSearch({ query: "Rust" }, { spawnFn: mock.spawnFn, timeoutMs: 5000 });
   assert.ok(result.content[0].text.includes("mem_1"));
   assert.equal(mock.callCount, 1);
 });
 
-test("genMemoryGet calls memory_get via 1-shot", async () => {
+test("genDesignLogGet calls memory_get via 1-shot", async () => {
   const responses = new Map([
     ["initialize", { protocolVersion: "2024-11-05" }],
     ["memory_get", { id: "mem_1", content: "Project uses Rust + Bevy for the engine." }],
   ]);
   const mock = createMockSpawn(responses);
-  const result = await genMemoryGet({ id: "mem_1" }, { spawnFn: mock.spawnFn, timeoutMs: 5000 });
+  const result = await genDesignLogGet({ id: "mem_1" }, { spawnFn: mock.spawnFn, timeoutMs: 5000 });
   assert.ok(result.content[0].text.includes("Rust + Bevy"));
 });
 
-test("genMemorySave calls memory_save via 1-shot", async () => {
+test("genDesignLogSave calls memory_save via 1-shot", async () => {
   const responses = new Map([
     ["initialize", { protocolVersion: "2024-11-05" }],
     ["memory_save", { id: "mem_2", status: "saved" }],
   ]);
   const mock = createMockSpawn(responses);
-  const result = await genMemorySave({ content: "Remember this preference" }, { spawnFn: mock.spawnFn, timeoutMs: 5000 });
+  const result = await genDesignLogSave({ content: "Remember this preference" }, { spawnFn: mock.spawnFn, timeoutMs: 5000 });
   assert.ok(result.content[0].text.includes("saved"));
 });
 
-test("genMemoryLog calls memory_log via 1-shot", async () => {
+test("genDesignLogLog calls memory_log via 1-shot", async () => {
   const responses = new Map([
     ["initialize", { protocolVersion: "2024-11-05" }],
     ["memory_log", { id: "log_3", date: "2026-06-06", status: "logged" }],
   ]);
   const mock = createMockSpawn(responses);
-  const result = await genMemoryLog({ content: "Today's session notes" }, { spawnFn: mock.spawnFn, timeoutMs: 5000 });
+  const result = await genDesignLogLog({ content: "Today's session notes" }, { spawnFn: mock.spawnFn, timeoutMs: 5000 });
   assert.ok(result.content[0].text.includes("logged"));
 });
 

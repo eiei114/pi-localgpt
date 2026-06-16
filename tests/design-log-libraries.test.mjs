@@ -3,10 +3,10 @@ import test from "node:test";
 import path from "node:path";
 
 const { resolveLocalGptConfig } = await import("../lib/localgpt-config.ts");
-const { assertInsideWorkspace, dailyLogPath, memoryFilePath, workspacePath } = await import("../lib/localgpt-workspace.ts");
-const { searchMemory } = await import("../lib/memory-search.ts");
-const { readMemoryEntry, readMemoryRange } = await import("../lib/memory-read.ts");
-const { logMemory, saveMemory } = await import("../lib/memory-write.ts");
+const { assertInsideWorkspace, dailyLogPath, designLogFilePath, workspacePath } = await import("../lib/localgpt-workspace.ts");
+const { searchDesignLog } = await import("../lib/design-log-search.ts");
+const { readDesignLogEntry, readDesignLogRange } = await import("../lib/design-log-read.ts");
+const { logDesignLog, saveDesignLog } = await import("../lib/design-log-write.ts");
 
 function enoent(filePath) {
   const error = new Error(`ENOENT: ${filePath}`);
@@ -76,14 +76,14 @@ class MemFs {
   }
 }
 
-test("resolveLocalGptConfig reads [memory].workspace from config.toml without spawning localgpt", async () => {
+test("resolveLocalGptConfig reads [design-log].workspace from config.toml without spawning localgpt", async () => {
   const configPath = path.resolve("/tmp/localgpt-config/config.toml");
   const fs = new MemFs({
     [configPath]: `
 [agent]
 default_model = "openai/example"
 
-[memory]
+[design-log]
 workspace = "../workspace" # relative to config file
 `,
   });
@@ -109,64 +109,64 @@ test("resolveLocalGptConfig falls back to XDG default workspace", async () => {
   assert.equal(config.workspace, path.resolve("/xdg/data/localgpt-work/workspace"));
 });
 
-test("workspace helpers expose memory paths and block traversal", () => {
+test("workspace helpers expose design-log paths and block traversal", () => {
   const workspace = path.resolve("/tmp/ws");
-  assert.equal(memoryFilePath(workspace), path.join(workspace, "MEMORY.md"));
-  assert.equal(dailyLogPath(workspace, "2026-06-16"), path.join(workspace, "memory", "2026-06-16.md"));
-  assert.equal(workspacePath(workspace, "memory/project.md"), path.join(workspace, "memory", "project.md"));
+  assert.equal(designLogFilePath(workspace), path.join(workspace, "DESIGN-LOG.md"));
+  assert.equal(dailyLogPath(workspace, "2026-06-16"), path.join(workspace, "design-log", "2026-06-16.md"));
+  assert.equal(workspacePath(workspace, "design-log/project.md"), path.join(workspace, "design-log", "project.md"));
   assert.throws(() => assertInsideWorkspace(workspace, path.resolve("/tmp/ws2/evil.md")), /escapes/);
   assert.throws(() => workspacePath(workspace, "../evil.md"), /escapes/);
 });
 
-test("searchMemory performs keyword search over workspace markdown only", async () => {
+test("searchDesignLog performs keyword search over workspace markdown only", async () => {
   const workspace = path.resolve("/tmp/ws");
   const fs = new MemFs({
-    [path.join(workspace, "MEMORY.md")]: "# Memory\n\nProject uses Rust and Bevy.\nKeep notes concise.",
-    [path.join(workspace, "memory", "2026-06-16.md")]: "# Log\n\nDiscussed Bevy terrain generation.",
+    [path.join(workspace, "DESIGN-LOG.md")]: "# Design Log\n\nProject uses Rust and Bevy.\nKeep notes concise.",
+    [path.join(workspace, "design-log", "2026-06-16.md")]: "# Log\n\nDiscussed Bevy terrain generation.",
     [path.join(workspace, "notes.txt")]: "Bevy should not be searched from txt files.",
   });
 
-  const results = await searchMemory({ workspace, query: "bevy", fs, contextLines: 0, limit: 5 });
+  const results = await searchDesignLog({ workspace, query: "bevy", fs, contextLines: 0, limit: 5 });
 
   assert.equal(results.length, 2);
-  assert.deepEqual(results.map((result) => result.file).sort(), ["MEMORY.md", "memory/2026-06-16.md"]);
+  assert.deepEqual(results.map((result) => result.file).sort(), ["DESIGN-LOG.md", "design-log/2026-06-16.md"]);
   assert.ok(results[0].id.includes(":"));
   assert.ok(results.every((result) => result.content.toLowerCase().includes("bevy")));
 });
 
-test("readMemoryRange and readMemoryEntry read guarded 1-based line ranges", async () => {
+test("readDesignLogRange and readDesignLogEntry read guarded 1-based line ranges", async () => {
   const workspace = path.resolve("/tmp/ws");
   const fs = new MemFs({
-    [path.join(workspace, "MEMORY.md")]: "one\ntwo\nthree\nfour",
+    [path.join(workspace, "DESIGN-LOG.md")]: "one\ntwo\nthree\nfour",
   });
 
-  const range = await readMemoryRange({ workspace, file: "MEMORY.md", startLine: 2, endLine: 3, fs });
+  const range = await readDesignLogRange({ workspace, file: "DESIGN-LOG.md", startLine: 2, endLine: 3, fs });
 
-  assert.equal(range.id, "MEMORY.md:2-3");
+  assert.equal(range.id, "DESIGN-LOG.md:2-3");
   assert.equal(range.content, "two\nthree");
 
-  const entry = await readMemoryEntry(workspace, range.id, fs);
+  const entry = await readDesignLogEntry(workspace, range.id, fs);
   assert.deepEqual(entry, range);
-  await assert.rejects(() => readMemoryRange({ workspace, file: "../outside.md", fs }), /escapes/);
+  await assert.rejects(() => readDesignLogRange({ workspace, file: "../outside.md", fs }), /escapes/);
 });
 
-test("saveMemory and logMemory append through fs and return readable ids", async () => {
+test("saveDesignLog and logDesignLog append through fs and return readable ids", async () => {
   const workspace = path.resolve("/tmp/ws");
-  const fs = new MemFs({ [path.join(workspace, "MEMORY.md")]: "# Memory\n" });
+  const fs = new MemFs({ [path.join(workspace, "DESIGN-LOG.md")]: "# Design Log\n" });
   const now = new Date("2026-06-16T04:05:06.000Z");
 
-  const saved = await saveMemory({ workspace, title: "Project", content: "Use TypeScript modules.", now, fs });
-  const logged = await logMemory({ workspace, content: "Implemented memory libraries.", now, fs });
+  const saved = await saveDesignLog({ workspace, title: "Project", content: "Use TypeScript modules.", now, fs });
+  const logged = await logDesignLog({ workspace, content: "Implemented design-log libraries.", now, fs });
 
-  assert.equal(saved.file, "MEMORY.md");
+  assert.equal(saved.file, "DESIGN-LOG.md");
   assert.ok(saved.appended.includes("## Project"));
-  assert.equal(logged.file, "memory/2026-06-16.md");
+  assert.equal(logged.file, "design-log/2026-06-16.md");
   assert.ok(logged.appended.includes("## 04:05:06"));
 
-  const savedEntry = await readMemoryEntry(workspace, saved.id, fs);
-  const loggedEntry = await readMemoryEntry(workspace, logged.id, fs);
+  const savedEntry = await readDesignLogEntry(workspace, saved.id, fs);
+  const loggedEntry = await readDesignLogEntry(workspace, logged.id, fs);
   assert.ok(savedEntry.content.includes("## Project"));
   assert.ok(savedEntry.content.includes("Use TypeScript modules."));
   assert.ok(loggedEntry.content.includes("## 04:05:06"));
-  assert.ok(loggedEntry.content.includes("Implemented memory libraries."));
+  assert.ok(loggedEntry.content.includes("Implemented design-log libraries."));
 });

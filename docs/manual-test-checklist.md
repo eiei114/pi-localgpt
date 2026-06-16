@@ -14,10 +14,10 @@ Run after `pi -e .` or `pi install` with a local package path.
 
 ## Memory tools
 
-- [ ] `localgpt_memory_search` finds known phrases.
-- [ ] `localgpt_memory_get` returns full entry by ID from search results.
-- [ ] `localgpt_memory_save` persists content; returns entry ID.
-- [ ] `localgpt_memory_log` appends to today's log.
+- [ ] `localgpt_design_log_search` finds known phrases.
+- [ ] `localgpt_design_log_get` returns full entry by ID from search results.
+- [ ] `localgpt_design_log_save` persists content; returns entry ID.
+- [ ] `localgpt_design_log_log` appends to today's log.
 
 ## Gen tools
 

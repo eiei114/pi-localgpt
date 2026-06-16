@@ -1,10 +1,10 @@
 import * as path from "node:path";
 
-export const MEMORY_FILE = "MEMORY.md";
+export const DESIGN_LOG_FILE = "DESIGN-LOG.md";
 export const HEARTBEAT_FILE = "HEARTBEAT.md";
 export const SOUL_FILE = "SOUL.md";
 export const LOCALGPT_FILE = "LocalGPT.md";
-export const DAILY_LOG_DIR = "memory";
+export const DAILY_LOG_DIR = "design-log";
 
 export class WorkspacePathError extends Error {
   constructor(message: string) {
@@ -49,8 +49,8 @@ function isoDateString(date: Date | string = new Date()): string {
   return date.toISOString().slice(0, 10);
 }
 
-export function memoryFilePath(workspace: string): string {
-  return workspacePath(workspace, MEMORY_FILE);
+export function designLogFilePath(workspace: string): string {
+  return workspacePath(workspace, DESIGN_LOG_FILE);
 }
 
 export function dailyLogPath(workspace: string, date: Date | string = new Date()): string {
@@ -60,7 +60,7 @@ export function dailyLogPath(workspace: string, date: Date | string = new Date()
 export function workspacePaths(workspace: string, date: Date | string = new Date()) {
   return {
     root: path.resolve(workspace),
-    memory: memoryFilePath(workspace),
+    designLog: designLogFilePath(workspace),
     heartbeat: workspacePath(workspace, HEARTBEAT_FILE),
     soul: workspacePath(workspace, SOUL_FILE),
     localgpt: workspacePath(workspace, LOCALGPT_FILE),

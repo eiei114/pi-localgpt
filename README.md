@@ -52,7 +52,7 @@ pi -e .
 1. Start `localgpt-gen` interactively (Bevy window opens)
 2. Check relay: `/localgpt:gen-status` or `localgpt_gen_status`
 3. Build world: `localgpt_gen_plan` → `localgpt_gen_blockout` → `localgpt_gen_populate`
-4. Save design: `localgpt_memory_save`
+4. Save design: `localgpt_design_log_save`
 
 See [`skills/localgpt-gen/SKILL.md`](skills/localgpt-gen/SKILL.md) for the full workflow guide.
 

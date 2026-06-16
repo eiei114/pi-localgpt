@@ -495,14 +495,14 @@ export async function genRedo(
   return toolResult(typeof result === "string" ? result : JSON.stringify(result, null, 2), result);
 }
 
-// ── Memory tools ────────────────────────────────────────────────────
+// ── Design log tools ────────────────────────────────────────────────
 
-export const memorySearchSchema = Type.Object({
-  query: Type.String({ description: "Search query for LocalGPT workspace memory." }),
+export const designLogSearchSchema = Type.Object({
+  query: Type.String({ description: "Search query for LocalGPT workspace design log." }),
   limit: Type.Optional(Type.Number({ description: "Maximum number of hits. Default: 10." })),
 });
 
-export async function genMemorySearch(
+export async function genDesignLogSearch(
   params: Record<string, unknown>,
   options?: GenCallOptions,
 ) {
@@ -513,11 +513,11 @@ export async function genMemorySearch(
   );
 }
 
-export const memoryGetSchema = Type.Object({
-  id: Type.String({ description: "Memory entry ID from search results." }),
+export const designLogGetSchema = Type.Object({
+  id: Type.String({ description: "Design log entry ID from search results." }),
 });
 
-export async function genMemoryGet(
+export async function genDesignLogGet(
   params: Record<string, unknown>,
   options?: GenCallOptions,
 ) {
@@ -528,12 +528,12 @@ export async function genMemoryGet(
   );
 }
 
-export const memorySaveSchema = Type.Object({
-  content: Type.String({ description: "Markdown text to save as durable cross-session memory." }),
-  title: Type.Optional(Type.String({ description: "Optional title for the memory entry." })),
+export const designLogSaveSchema = Type.Object({
+  content: Type.String({ description: "Markdown text to save as durable cross-session design log context." }),
+  title: Type.Optional(Type.String({ description: "Optional title for the design log entry." })),
 });
 
-export async function genMemorySave(
+export async function genDesignLogSave(
   params: Record<string, unknown>,
   options?: GenCallOptions,
 ) {
@@ -544,12 +544,12 @@ export async function genMemorySave(
   );
 }
 
-export const memoryLogSchema = Type.Object({
-  content: Type.String({ description: "Markdown text to append as a daily log entry." }),
+export const designLogLogSchema = Type.Object({
+  content: Type.String({ description: "Markdown text to append as a daily design log entry." }),
   date: Type.Optional(Type.String({ description: "Date in YYYY-MM-DD format. Default: today." })),
 });
 
-export async function genMemoryLog(
+export async function genDesignLogLog(
   params: Record<string, unknown>,
   options?: GenCallOptions,
 ) {
@@ -559,6 +559,16 @@ export async function genMemoryLog(
     result,
   );
 }
+
+// Backward-compatible aliases for existing memory-named wrappers.
+export const memorySearchSchema = designLogSearchSchema;
+export const memoryGetSchema = designLogGetSchema;
+export const memorySaveSchema = designLogSaveSchema;
+export const memoryLogSchema = designLogLogSchema;
+export const genMemorySearch = genDesignLogSearch;
+export const genMemoryGet = genDesignLogGet;
+export const genMemorySave = genDesignLogSave;
+export const genMemoryLog = genDesignLogLog;
 
 // ── Player & NPC ────────────────────────────────────────────────────
 

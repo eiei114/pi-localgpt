@@ -19,7 +19,7 @@ export interface LocalGptConfig {
   configFound: boolean;
   workspace: string;
   workspaceSource: "option" | "env" | "config" | "default";
-  memory: { workspace: string };
+  designLog: { workspace: string };
 }
 
 export function expandPath(rawPath: string, env: NodeJS.ProcessEnv = process.env): string {
@@ -79,7 +79,7 @@ function unquoteTomlString(raw: string): string {
   return value;
 }
 
-export function parseMemoryWorkspaceFromToml(toml: string): string | undefined {
+export function parseDesignLogWorkspaceFromToml(toml: string): string | undefined {
   let section = "";
 
   for (const originalLine of toml.split(/\r?\n/)) {
@@ -92,7 +92,7 @@ export function parseMemoryWorkspaceFromToml(toml: string): string | undefined {
       continue;
     }
 
-    if (section !== "memory") continue;
+    if (section !== "design-log" && section !== "design_log" && section !== "memory") continue;
     const assignment = line.match(/^([A-Za-z_][A-Za-z0-9_-]*)\s*=\s*(.+)$/);
     if (!assignment || assignment[1] !== "workspace") continue;
     const value = unquoteTomlString(assignment[2]!);
@@ -120,7 +120,7 @@ export async function resolveLocalGptConfig(options: ResolveLocalGptConfigOption
   try {
     const toml = await configFs.readFile(configPath, "utf8");
     configFound = true;
-    configuredWorkspace = parseMemoryWorkspaceFromToml(toml);
+    configuredWorkspace = parseDesignLogWorkspaceFromToml(toml);
   } catch (error) {
     const code = (error as NodeJS.ErrnoException).code;
     if (code !== "ENOENT") throw error;
@@ -146,5 +146,5 @@ export async function resolveLocalGptConfig(options: ResolveLocalGptConfigOption
   }
 
   const workspace = resolveMaybeRelative(rawWorkspace, workspaceBase, env);
-  return { configPath, configFound, workspace, workspaceSource, memory: { workspace } };
+  return { configPath, configFound, workspace, workspaceSource, designLog: { workspace } };
 }

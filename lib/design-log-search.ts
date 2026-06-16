@@ -1,6 +1,6 @@
 import * as fs from "node:fs/promises";
 import * as path from "node:path";
-import { encodeMemoryId } from "./memory-read.ts";
+import { encodeDesignLogId } from "./design-log-read.ts";
 import { relativeWorkspacePath, workspacePath } from "./localgpt-workspace.ts";
 
 export interface DirentLike {
@@ -9,20 +9,20 @@ export interface DirentLike {
   isFile(): boolean;
 }
 
-export interface MemorySearchFs {
+export interface DesignLogSearchFs {
   readdir(dirPath: string, options: { withFileTypes: true }): Promise<DirentLike[]>;
   readFile(filePath: string, encoding: BufferEncoding): Promise<string>;
 }
 
-export interface MemorySearchOptions {
+export interface DesignLogSearchOptions {
   workspace: string;
   query: string;
   limit?: number;
   contextLines?: number;
-  fs?: MemorySearchFs;
+  fs?: DesignLogSearchFs;
 }
 
-export interface MemorySearchResult {
+export interface DesignLogSearchResult {
   id: string;
   file: string;
   content: string;
@@ -42,7 +42,7 @@ function tokenize(query: string): string[] {
   });
 }
 
-async function listMarkdownFiles(searchFs: MemorySearchFs, workspace: string, dir: string): Promise<string[]> {
+async function listMarkdownFiles(searchFs: DesignLogSearchFs, workspace: string, dir: string): Promise<string[]> {
   const entries = await searchFs.readdir(dir, { withFileTypes: true });
   const files: string[] = [];
 
@@ -77,7 +77,7 @@ function splitLines(content: string): string[] {
   return content.length === 0 ? [] : content.split(/\r?\n/);
 }
 
-export async function searchMemory(options: MemorySearchOptions): Promise<MemorySearchResult[]> {
+export async function searchDesignLog(options: DesignLogSearchOptions): Promise<DesignLogSearchResult[]> {
   const tokens = tokenize(options.query);
   if (tokens.length === 0) return [];
 
@@ -86,7 +86,7 @@ export async function searchMemory(options: MemorySearchOptions): Promise<Memory
   const limit = options.limit ?? 10;
   const contextLines = options.contextLines ?? 2;
   const files = await listMarkdownFiles(searchFs, workspace, workspace);
-  const results: MemorySearchResult[] = [];
+  const results: DesignLogSearchResult[] = [];
 
   for (const filePath of files) {
     const content = await searchFs.readFile(filePath, "utf8");
@@ -105,7 +105,7 @@ export async function searchMemory(options: MemorySearchOptions): Promise<Memory
       const coverage = uniqueMatched.length / tokens.length;
 
       results.push({
-        id: encodeMemoryId(relativeFile, lineStart, lineEnd),
+        id: encodeDesignLogId(relativeFile, lineStart, lineEnd),
         file: relativeFile,
         content: lines.slice(startIndex, endIndex + 1).join("\n"),
         score: count + coverage,
