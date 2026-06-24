@@ -2,6 +2,7 @@ import type { ExtensionAPI } from "@earendil-works/pi-coding-agent";
 import { Type } from "typebox";
 import { genCallTool } from "../lib/gen-mcp-client.ts";
 import { formatGenStatus, inspectGenStatus } from "../lib/gen-status.ts";
+import { formatLocalGptStatus, inspectLocalGptStatus, statusNotificationLevel } from "../lib/localgpt-status.ts";
 import {
   screenshotSchema, genScreenshot,
   sceneInfoSchema, genSceneInfo,
@@ -57,6 +58,18 @@ import {
 export default function (pi: ExtensionAPI) {
   // ── Commands ──────────────────────────────────────────────────────
 
+  pi.registerCommand("localgpt:status", {
+    description: "Show LocalGPT design-log workspace readiness (direct filesystem; no binary spawn)",
+    handler: async (_args, ctx) => {
+      try {
+        const summary = await inspectLocalGptStatus();
+        ctx.ui.notify(formatLocalGptStatus(summary), statusNotificationLevel(summary));
+      } catch (error) {
+        ctx.ui.notify(error instanceof Error ? error.message : String(error), "error");
+      }
+    },
+  });
+
   pi.registerCommand("localgpt:gen-status", {
     description: "Check localgpt-gen binary and relay availability",
     handler: async (_args, ctx) => {
@@ -74,6 +87,26 @@ export default function (pi: ExtensionAPI) {
   const genCallParameters = Type.Object({
     tool: Type.String({ description: "Gen or design-log tool name, e.g. gen_screenshot, gen_scene_info, gen_spawn_primitive, memory_search" }),
     args: Type.Optional(Type.Record(Type.String(), Type.Unknown(), { description: "Arguments for the tool" })),
+  });
+
+  pi.registerTool({
+    name: "localgpt_status",
+    label: "LocalGPT Status",
+    description: "Report LocalGPT config/workspace readiness for the design log. No localgpt binary spawn; keyword search only.",
+    promptSnippet: "localgpt_status: check LocalGPT design-log workspace paths before search or write tools",
+    promptGuidelines: [
+      "Use before localgpt_design_log_search when workspace setup is uncertain.",
+      "Reads markdown paths directly from disk; does not spawn the localgpt-gen binary.",
+      "Returns structured JSON with config path, workspace path, DESIGN-LOG.md / today log presence, and searchMode keyword.",
+    ],
+    parameters: Type.Object({}),
+    async execute() {
+      const summary = await inspectLocalGptStatus();
+      return {
+        content: [{ type: "text", text: formatLocalGptStatus(summary) }],
+        details: summary,
+      };
+    },
   });
 
   pi.registerTool({
