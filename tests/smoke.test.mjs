@@ -4,6 +4,7 @@ import test from "node:test";
 test("pi-localgpt library modules load", async () => {
   const client = await import("../lib/gen-mcp-client.ts");
   const genStatus = await import("../lib/gen-status.ts");
+  const localgptStatus = await import("../lib/localgpt-status.ts");
   const genTools = await import("../lib/gen-tools.ts");
   const localgptConfig = await import("../lib/localgpt-config.ts");
   const localgptWorkspace = await import("../lib/localgpt-workspace.ts");
@@ -16,6 +17,8 @@ test("pi-localgpt library modules load", async () => {
   assert.equal(typeof client.genListTools, "function");
   assert.equal(typeof genStatus.formatGenStatus, "function");
   assert.equal(typeof genStatus.inspectGenStatus, "function");
+  assert.equal(typeof localgptStatus.formatLocalGptStatus, "function");
+  assert.equal(typeof localgptStatus.inspectLocalGptStatus, "function");
   assert.equal(typeof genTools.genScreenshot, "function");
   assert.equal(typeof genTools.genDesignLogSearch, "function");
   assert.equal(typeof genTools.genDesignLogSave, "function");
@@ -23,6 +26,7 @@ test("pi-localgpt library modules load", async () => {
   assert.equal(typeof genTools.genMemorySave, "function");
   assert.equal(typeof localgptConfig.resolveLocalGptConfig, "function");
   assert.equal(typeof localgptWorkspace.assertInsideWorkspace, "function");
+  assert.equal(typeof localgptWorkspace.inspectWorkspaceFiles, "function");
   assert.equal(typeof designLogSearch.searchDesignLog, "function");
   assert.equal(typeof designLogRead.readDesignLogRange, "function");
   assert.equal(typeof designLogWrite.saveDesignLog, "function");

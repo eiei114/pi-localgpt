@@ -1,3 +1,5 @@
+import { constants } from "node:fs";
+import { access } from "node:fs/promises";
 import * as path from "node:path";
 
 export const DESIGN_LOG_FILE = "DESIGN-LOG.md";
@@ -57,6 +59,24 @@ export function dailyLogPath(workspace: string, date: Date | string = new Date()
   return workspacePath(workspace, path.join(DAILY_LOG_DIR, `${isoDateString(date)}.md`));
 }
 
+export interface WorkspaceFileStatus {
+  designLog: string;
+  todayLog: string;
+  designLogExists: boolean;
+  todayLogExists: boolean;
+}
+
+export type PathExistsFn = (filePath: string) => Promise<boolean>;
+
+async function defaultPathExists(filePath: string): Promise<boolean> {
+  try {
+    await access(filePath, constants.F_OK);
+    return true;
+  } catch {
+    return false;
+  }
+}
+
 export function workspacePaths(workspace: string, date: Date | string = new Date()) {
   return {
     root: path.resolve(workspace),
@@ -66,5 +86,24 @@ export function workspacePaths(workspace: string, date: Date | string = new Date
     localgpt: workspacePath(workspace, LOCALGPT_FILE),
     dailyLogDir: workspacePath(workspace, DAILY_LOG_DIR),
     dailyLog: dailyLogPath(workspace, date),
+  };
+}
+
+export async function inspectWorkspaceFiles(
+  workspace: string,
+  date: Date | string = new Date(),
+  pathExists: PathExistsFn = defaultPathExists,
+): Promise<WorkspaceFileStatus> {
+  const paths = workspacePaths(workspace, date);
+  const [designLogExists, todayLogExists] = await Promise.all([
+    pathExists(paths.designLog),
+    pathExists(paths.dailyLog),
+  ]);
+
+  return {
+    designLog: paths.designLog,
+    todayLog: paths.dailyLog,
+    designLogExists,
+    todayLogExists,
   };
 }
