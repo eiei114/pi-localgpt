@@ -11,6 +11,7 @@ test("pi-localgpt library modules load", async () => {
   const designLogSearch = await import("../lib/design-log-search.ts");
   const designLogRead = await import("../lib/design-log-read.ts");
   const designLogWrite = await import("../lib/design-log-write.ts");
+  const commandInput = await import("../lib/command-input.ts");
 
   assert.equal(typeof client.checkGenBinary, "function");
   assert.equal(typeof client.genCallTool, "function");
@@ -30,4 +31,5 @@ test("pi-localgpt library modules load", async () => {
   assert.equal(typeof designLogSearch.searchDesignLog, "function");
   assert.equal(typeof designLogRead.readDesignLogRange, "function");
   assert.equal(typeof designLogWrite.saveDesignLog, "function");
+  assert.equal(typeof commandInput.promptForCommandInput, "function");
 });
