@@ -1,5 +1,6 @@
 import type { ExtensionAPI } from "@earendil-works/pi-coding-agent";
 import { Type } from "typebox";
+import { promptForCommandInput } from "../lib/command-input.ts";
 import { genCallTool } from "../lib/gen-mcp-client.ts";
 import { formatGenStatus, inspectGenStatus } from "../lib/gen-status.ts";
 import { formatLocalGptStatus, inspectLocalGptStatus, statusNotificationLevel } from "../lib/localgpt-status.ts";
@@ -76,6 +77,30 @@ export default function (pi: ExtensionAPI) {
       try {
         const summary = await inspectGenStatus();
         ctx.ui.notify(formatGenStatus(summary), summary.ok ? "info" : "warning");
+      } catch (error) {
+        ctx.ui.notify(error instanceof Error ? error.message : String(error), "error");
+      }
+    },
+  });
+
+  pi.registerCommand("localgpt:remember", {
+    description: "Save durable design-log context via upstream memory_save (1-shot MCP)",
+    handler: async (args, ctx) => {
+      const content = await promptForCommandInput(
+        ctx,
+        "Remember in LocalGPT:",
+        "Durable context to append to DESIGN-LOG.md",
+        args,
+      );
+      if (!content) {
+        ctx.ui.notify("Remember cancelled. Enter design log text.", "warning");
+        return;
+      }
+
+      try {
+        const result = await genDesignLogSave({ content }, { signal: ctx.signal });
+        const text = result.content[0]?.text ?? JSON.stringify(result.details);
+        ctx.ui.notify(text, "info");
       } catch (error) {
         ctx.ui.notify(error instanceof Error ? error.message : String(error), "error");
       }
