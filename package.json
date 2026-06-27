@@ -1,7 +1,7 @@
 {
   "name": "pi-localgpt",
   "version": "0.5.0",
-  "description": "Pi extension for LocalGPT \u2014 unified MCP bridge. 50 curated tools for design-log + Gen 3D world building.",
+  "description": "Pi extension for LocalGPT — unified MCP bridge. 50 curated tools for design-log + Gen 3D world building.",
   "type": "module",
   "license": "MIT",
   "author": "Keisu",
@@ -63,7 +63,7 @@
     "@earendil-works/pi-coding-agent": "latest",
     "@earendil-works/pi-tui": "latest",
     "typebox": "latest",
-    "@types/node": "^22.0.0",
+    "@types/node": "^26.0.0",
     "typescript": "^6.0.3"
   }
 }

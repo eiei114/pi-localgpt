@@ -1,7 +1,13 @@
 import type { ExtensionAPI } from "@earendil-works/pi-coding-agent";
 import { Type } from "typebox";
+import { promptForCommandInput } from "../lib/command-input.ts";
 import { genCallTool } from "../lib/gen-mcp-client.ts";
 import { formatGenStatus, inspectGenStatus } from "../lib/gen-status.ts";
+import { formatLocalGptStatus, inspectLocalGptStatus, statusNotificationLevel } from "../lib/localgpt-status.ts";
+import {
+  LOCALGPT_MEMORY_SEARCH_DEFAULT_MAX_CHARS,
+  runMemorySearch,
+} from "../lib/localgpt-memory-search.ts";
 import {
   screenshotSchema, genScreenshot,
   sceneInfoSchema, genSceneInfo,
@@ -57,6 +63,18 @@ import {
 export default function (pi: ExtensionAPI) {
   // ── Commands ──────────────────────────────────────────────────────
 
+  pi.registerCommand("localgpt:status", {
+    description: "Show LocalGPT design-log workspace readiness (direct filesystem; no binary spawn)",
+    handler: async (_args, ctx) => {
+      try {
+        const summary = await inspectLocalGptStatus();
+        ctx.ui.notify(formatLocalGptStatus(summary), statusNotificationLevel(summary));
+      } catch (error) {
+        ctx.ui.notify(error instanceof Error ? error.message : String(error), "error");
+      }
+    },
+  });
+
   pi.registerCommand("localgpt:gen-status", {
     description: "Check localgpt-gen binary and relay availability",
     handler: async (_args, ctx) => {
@@ -69,11 +87,114 @@ export default function (pi: ExtensionAPI) {
     },
   });
 
+  pi.registerCommand("localgpt:search", {
+    description: "Search LocalGPT workspace memory via upstream memory_search (1-shot MCP)",
+    handler: async (args, ctx) => {
+      const query = await promptForCommandInput(
+        ctx,
+        "Search LocalGPT memory:",
+        "e.g. rust async, level layout preferences",
+        args,
+      );
+      if (!query) {
+        ctx.ui.notify("Search cancelled. Enter a memory query.", "warning");
+        return;
+      }
+
+      try {
+        const result = await runMemorySearch(query, { signal: ctx.signal });
+        ctx.ui.notify(result.text, result.ok ? "info" : "warning");
+      } catch (error) {
+        ctx.ui.notify(error instanceof Error ? error.message : String(error), "error");
+      }
+    },
+  });
+
+  pi.registerCommand("localgpt:remember", {
+    description: "Save durable design-log context via upstream memory_save (1-shot MCP)",
+    handler: async (args, ctx) => {
+      const content = await promptForCommandInput(
+        ctx,
+        "Remember in LocalGPT:",
+        "Durable context to append to DESIGN-LOG.md",
+        args,
+      );
+      if (!content) {
+        ctx.ui.notify("Remember cancelled. Enter design log text.", "warning");
+        return;
+      }
+
+      try {
+        const result = await genDesignLogSave({ content }, { signal: ctx.signal });
+        const text = result.content[0]?.text ?? JSON.stringify(result.details);
+        ctx.ui.notify(text, "info");
+      } catch (error) {
+        ctx.ui.notify(error instanceof Error ? error.message : String(error), "error");
+      }
+    },
+  });
+
   // ── Generic gen call ─────────────────────────────────────────────
 
   const genCallParameters = Type.Object({
     tool: Type.String({ description: "Gen or design-log tool name, e.g. gen_screenshot, gen_scene_info, gen_spawn_primitive, memory_search" }),
     args: Type.Optional(Type.Record(Type.String(), Type.Unknown(), { description: "Arguments for the tool" })),
+  });
+
+  const memorySearchParameters = Type.Object({
+    query: Type.String({ description: "Search query for LocalGPT workspace memory (hybrid semantic + keyword via upstream memory_search)." }),
+    limit: Type.Optional(Type.Number({ description: "Maximum number of hits. Default: 10." })),
+  });
+
+  pi.registerTool({
+    name: "localgpt_memory_search",
+    label: "LocalGPT Memory Search",
+    description: `Search LocalGPT workspace memory via upstream memory_search (hybrid semantic + keyword). Output truncated to ${LOCALGPT_MEMORY_SEARCH_DEFAULT_MAX_CHARS} chars. Requires localgpt-gen running.`,
+    promptSnippet: "localgpt_memory_search: recall cross-session notes from LocalGPT workspace memory",
+    promptGuidelines: [
+      "Use for cross-session preferences, assistant context, and long-running project notes stored in LocalGPT.",
+      "Follow with localgpt_memory_get when you need the full entry from a hit ID.",
+      "When localgpt-gen is missing or the relay is unreachable, returns status-style setup hints instead of spawning blindly.",
+    ],
+    parameters: memorySearchParameters,
+    async execute(_toolCallId, params, signal) {
+      const result = await runMemorySearch(params.query, {
+        limit: params.limit,
+        signal,
+      });
+
+      return {
+        content: [{ type: "text", text: result.text }],
+        details: {
+          ok: result.ok,
+          query: result.query,
+          hits: result.hits,
+          searchMode: result.searchMode,
+          hints: result.hints,
+        },
+        isError: !result.ok,
+      };
+    },
+  });
+
+  pi.registerTool({
+    name: "localgpt_status",
+    label: "LocalGPT Status",
+    description: "Report LocalGPT config/workspace readiness for the design log. No localgpt binary spawn; keyword search only.",
+    promptSnippet: "localgpt_status: check LocalGPT design-log workspace paths before search or write tools",
+    promptGuidelines: [
+      "Use before localgpt_design_log_search when workspace setup is uncertain.",
+      "Reads markdown paths directly from disk; does not spawn the localgpt-gen binary.",
+      "Returns structured JSON with config path, workspace path, DESIGN-LOG.md / today log presence, and searchMode keyword.",
+    ],
+    parameters: Type.Object({}),
+    async execute() {
+      const summary = await inspectLocalGptStatus();
+      return {
+        content: [{ type: "text", text: formatLocalGptStatus(summary) }],
+        details: summary,
+      };
+    },
   });
 
   pi.registerTool({
@@ -139,7 +260,6 @@ export default function (pi: ExtensionAPI) {
     { name: "localgpt_design_log_get", label: "Design Log Get", desc: "Read a specific LocalGPT design log entry by ID via 1-shot CLI. Requires localgpt-gen running.", schema: designLogGetSchema, fn: genDesignLogGet, snippet: "localgpt_design_log_get: read a full design log entry from a search result ID" },
     { name: "localgpt_design_log_save", label: "Design Log Save", desc: "Save durable cross-session level-design context to the LocalGPT design log via 1-shot CLI. Requires localgpt-gen running.", schema: designLogSaveSchema, fn: genDesignLogSave, snippet: "localgpt_design_log_save: persist stable level-design decisions and preferences across Pi sessions" },
     { name: "localgpt_design_log_log", label: "Design Log Log", desc: "Append a timestamped daily design log entry via 1-shot CLI. Requires localgpt-gen running.", schema: designLogLogSchema, fn: genDesignLogLog, snippet: "localgpt_design_log_log: append a timestamped note to today's LocalGPT design log" },
-    { name: "localgpt_memory_search", label: "Memory Search (Legacy)", desc: "Legacy alias for localgpt_design_log_search. Requires localgpt-gen running.", schema: designLogSearchSchema, fn: genDesignLogSearch, snippet: "localgpt_memory_search: legacy alias for localgpt_design_log_search" },
     { name: "localgpt_memory_get", label: "Memory Get (Legacy)", desc: "Legacy alias for localgpt_design_log_get. Requires localgpt-gen running.", schema: designLogGetSchema, fn: genDesignLogGet, snippet: "localgpt_memory_get: legacy alias for localgpt_design_log_get" },
     { name: "localgpt_memory_save", label: "Memory Save (Legacy)", desc: "Legacy alias for localgpt_design_log_save. Requires localgpt-gen running.", schema: designLogSaveSchema, fn: genDesignLogSave, snippet: "localgpt_memory_save: legacy alias for localgpt_design_log_save" },
     { name: "localgpt_memory_log", label: "Memory Log (Legacy)", desc: "Legacy alias for localgpt_design_log_log. Requires localgpt-gen running.", schema: designLogLogSchema, fn: genDesignLogLog, snippet: "localgpt_memory_log: legacy alias for localgpt_design_log_log" },
