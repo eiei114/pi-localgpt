@@ -34,8 +34,34 @@ All tools use a **1-shot MCP bridge**: each call spawns `localgpt-gen mcp-server
 
 ## Install
 
+Install the published npm package with Pi:
+
 ```bash
 pi install npm:pi-localgpt
+```
+
+Install into the current project instead of your user Pi settings:
+
+```bash
+pi install npm:pi-localgpt -l
+```
+
+Pin a specific version when you want reproducible installs:
+
+```bash
+pi install npm:pi-localgpt@0.4.3
+```
+
+Or install from GitHub:
+
+```bash
+pi install git:github.com/eiei114/pi-localgpt
+```
+
+Try it without permanently installing:
+
+```bash
+pi -e npm:pi-localgpt
 ```
 
 Local development:
@@ -165,6 +191,14 @@ Arguments are not required. Details are entered after the command runs.
 ```bash
 npm install
 npm run ci
+```
+
+`npm run ci` runs typecheck, tests, and `npm pack --dry-run` (via `pack:check`) so the published tarball matches `package.json` `files`.
+
+Run the pack check alone:
+
+```bash
+npm run pack:check
 ```
 
 ## Release
