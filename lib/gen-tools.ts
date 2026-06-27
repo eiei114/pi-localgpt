@@ -11,6 +11,13 @@
 
 import { Type, type TObject, type TSchema } from "typebox";
 import { genCallTool, type GenCallOptions } from "./gen-mcp-client.ts";
+import {
+  prepareVaultScreenshotExport,
+  wantsVaultScreenshotExport,
+  type MkdirFs,
+  type VaultScreenshotExportParams,
+} from "./vault-screenshot-export.ts";
+import { resolveLocalGptConfig } from "./localgpt-config.ts";
 
 // ── Helper ──────────────────────────────────────────────────────────
 
@@ -21,17 +28,67 @@ function toolResult(text: string, details?: unknown) {
   };
 }
 
+const vaultScreenshotExportFields = {
+  vault_project: Type.Optional(Type.String({
+    description: "Vault project slug under 4_Project/, e.g. OSS/pi-localgpt. Default: inferred from [design-log].workspace when it lives under 4_Project/<project>/.",
+  })),
+  vault_root: Type.Optional(Type.String({
+    description: "Obsidian vault root. Default: inferred from design-log workspace path before 4_Project/.",
+  })),
+  screenshots_dir: Type.Optional(Type.String({
+    description: "Screenshots folder relative to the project root. Default: screenshots.",
+  })),
+  world: Type.Optional(Type.String({ description: "World or skill name embedded in the output filename." })),
+  session: Type.Optional(Type.String({ description: "Pi or LocalGPT session id embedded in the output filename." })),
+  filename: Type.Optional(Type.String({ description: "Output filename override (for example hero-shot.png)." })),
+};
+
+export interface VaultScreenshotToolOptions extends GenCallOptions {
+  resolveConfig?: typeof resolveLocalGptConfig;
+  mkdirFs?: MkdirFs;
+  now?: Date;
+  cwd?: string;
+  workspace?: string;
+}
+
+function asVaultScreenshotParams(params: Record<string, unknown>): VaultScreenshotExportParams {
+  return params as VaultScreenshotExportParams;
+}
+
+async function prepareVaultExportPath(
+  params: Record<string, unknown>,
+  options?: VaultScreenshotToolOptions,
+) {
+  const vaultParams = asVaultScreenshotParams(params);
+  if (!wantsVaultScreenshotExport(vaultParams)) return null;
+
+  return prepareVaultScreenshotExport({
+    params: vaultParams,
+    env: options?.env,
+    cwd: options?.cwd,
+    workspace: options?.workspace,
+    now: options?.now,
+    resolveConfig: options?.resolveConfig,
+    mkdirFs: options?.mkdirFs,
+  });
+}
+
 // ── Screenshot ──────────────────────────────────────────────────────
 
 export const screenshotSchema = Type.Object({
   width: Type.Optional(Type.Number({ description: "Image width in pixels. Default: viewport width." })),
   height: Type.Optional(Type.Number({ description: "Image height in pixels. Default: viewport height." })),
+  ...vaultScreenshotExportFields,
 });
 
 export async function genScreenshot(
   params: Record<string, unknown>,
-  options?: GenCallOptions,
+  options?: VaultScreenshotToolOptions,
 ) {
+  if (wantsVaultScreenshotExport(asVaultScreenshotParams(params))) {
+    return genExportScreenshot(params, options);
+  }
+
   const result = await genCallTool("gen_screenshot", params, options);
   return toolResult(
     typeof result === "string" ? result : JSON.stringify(result, null, 2),
@@ -888,18 +945,38 @@ export async function genAudioEmitter(
 // ── Export screenshot ───────────────────────────────────────────────
 
 export const exportScreenshotSchema = Type.Object({
-  path: Type.Optional(Type.String({ description: "Output file path. Default: workspace screenshots/ with timestamp." })),
+  path: Type.Optional(Type.String({
+    description: "Explicit output file path. When omitted, vault export fields can target 4_Project/<project>/screenshots/.",
+  })),
   width: Type.Optional(Type.Number({ description: "Image width in pixels." })),
   height: Type.Optional(Type.Number({ description: "Image height in pixels." })),
+  ...vaultScreenshotExportFields,
 });
 
 export async function genExportScreenshot(
   params: Record<string, unknown>,
-  options?: GenCallOptions,
+  options?: VaultScreenshotToolOptions,
 ) {
-  const result = await genCallTool("gen_export_screenshot", params, options);
-  return toolResult(
-    typeof result === "string" ? result : JSON.stringify(result, null, 2),
-    result,
-  );
+  const vaultExport = await prepareVaultExportPath(params, options);
+  const callParams: Record<string, unknown> = {};
+
+  if (typeof params.width === "number") callParams.width = params.width;
+  if (typeof params.height === "number") callParams.height = params.height;
+
+  if (typeof params.path === "string" && params.path.trim()) {
+    callParams.path = params.path.trim();
+  } else if (vaultExport) {
+    callParams.path = vaultExport.absolutePath;
+  }
+
+  const result = await genCallTool("gen_export_screenshot", callParams, options);
+  const details = typeof result === "object" && result !== null
+    ? { ...(result as Record<string, unknown>), vaultExport }
+    : { result, vaultExport };
+
+  const summary = vaultExport
+    ? `Exported screenshot to vault path: ${vaultExport.vaultRelativePath}`
+    : typeof result === "string" ? result : JSON.stringify(result, null, 2);
+
+  return toolResult(summary, details);
 }

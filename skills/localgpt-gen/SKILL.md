@@ -107,6 +107,7 @@ localgpt_gen_regenerate    → blockout 変更後の再生成
 
 | 状況 | Tool |
 |------|------|
+| vault プロジェクトへスクリーンショット保存 | `localgpt_gen_export_screenshot`（`world` / `session` / `vault_project`） |
 | スクリーンショット出力 | `localgpt_gen_export_screenshot` |
 | glTF 出力 | `localgpt_gen_export_gltf` |
 | HTML（Three.js）出力 | `localgpt_gen_export_html` |

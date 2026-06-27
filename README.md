@@ -24,7 +24,7 @@ All tools use a **1-shot MCP bridge**: each call spawns `localgpt-gen mcp-server
 - **WorldGen pipeline** — text description → layout plan → blockout → populate → evaluate → refine
 - **Game mechanics** — player, NPC, triggers, teleporters, collectibles, doors, physics
 - **Terrain & environment** — procedural terrain, water, foliage, sky, audio
-- **Export** — screenshot, glTF, HTML, world skills
+- **Export** — screenshot (including vault `4_Project/<project>/screenshots/`), glTF, HTML, world skills
 - **Generic call** — unwrapped tools accessible via `localgpt_gen_call`
 
 ## Prerequisites

@@ -2,6 +2,15 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.5.0] - 2026-06-28
+
+### Added
+
+- Vault screenshot export plumbing for `localgpt_gen_export_screenshot` and `localgpt_gen_screenshot`.
+- Resolve `4_Project/<project>/screenshots/` (or a custom `screenshots_dir`) from design-log workspace context or explicit `vault_root` / `vault_project`.
+- Contextual filenames with `world` and `session` markers plus automatic screenshots folder creation.
+- `docs/vault-screenshot-export.md` with an end-to-end export example.
+
 ## [0.4.2] - 2026-06-17
 
 ### Changed
