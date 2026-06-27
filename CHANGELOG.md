@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.4.3] - 2026-06-27
+
+### Changed
+
+- Aligned README install guidance with the Pi OSS template: GitHub install, project-local (`-l`), version pinning, and `pi -e npm:pi-localgpt` try-before-install paths.
+- Documented `npm run ci` and `npm pack --dry-run` (`pack:check`) in the Development section.
+
 ## [0.4.2] - 2026-06-17
 
 ### Changed
