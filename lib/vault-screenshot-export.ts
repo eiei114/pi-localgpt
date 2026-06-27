@@ -69,13 +69,13 @@ export function sanitizePathSegment(raw: string): string {
 
 export function parseVaultContextFromWorkspace(workspace: string): VaultContext | null {
   const resolved = path.resolve(workspace);
-  const segments = resolved.split(path.sep).filter(Boolean);
+  const segments = resolved.split(path.sep);
   const projectIndex = segments.lastIndexOf(VAULT_PROJECTS_SEGMENT);
   if (projectIndex === -1 || projectIndex >= segments.length - 1) return null;
 
-  const vaultRoot = segments.slice(0, projectIndex).join(path.sep);
-  const projectSlug = segments.slice(projectIndex + 1).join("/");
-  if (!vaultRoot || !projectSlug) return null;
+  const vaultRoot = path.resolve(segments.slice(0, projectIndex).join(path.sep) || ".");
+  const projectSlug = segments.slice(projectIndex + 1).filter(Boolean).join("/");
+  if (!projectSlug) return null;
 
   return { vaultRoot, projectSlug };
 }
