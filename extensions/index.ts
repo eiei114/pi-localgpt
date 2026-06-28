@@ -59,6 +59,8 @@ import {
   setAmbienceSchema, genSetAmbience,
   audioEmitterSchema, genAudioEmitter,
   exportScreenshotSchema, genExportScreenshot,
+  loadTemplateSchema, genLoadTemplate,
+  listTemplatesSchema, genListTemplates,
 } from "../lib/gen-tools.ts";
 
 export default function (pi: ExtensionAPI) {
@@ -345,6 +347,18 @@ export default function (pi: ExtensionAPI) {
     { name: "localgpt_gen_export_html", label: "Gen Export HTML", desc: "Export scene as self-contained HTML via 1-shot CLI. Requires localgpt-gen running.", schema: exportHtmlSchema, fn: genExportHtml, snippet: "localgpt_gen_export_html: export scene to HTML file with Three.js" },
     { name: "localgpt_gen_save", label: "Gen Save World", desc: "Save scene to a world skill via 1-shot CLI. Requires localgpt-gen running.", schema: saveWorldSchema, fn: genSaveWorld, snippet: "localgpt_gen_save: save current scene as a reusable world skill" },
     { name: "localgpt_gen_load", label: "Gen Load World", desc: "Load a saved world via 1-shot CLI. Requires localgpt-gen running.", schema: loadWorldSchema, fn: genLoadWorld, snippet: "localgpt_gen_load: load a previously saved world" },
+    { name: "localgpt_gen_template", label: "Gen Load Template", desc: "Load a named world template by id (e.g. fantasy-village, horror-house, sci-fi-station) via 1-shot CLI. Resolves template id to saved-world name and delegates to gen_load_world. Requires localgpt-gen running.", schema: loadTemplateSchema, fn: genLoadTemplate, snippet: "localgpt_gen_template: load a named world template (fantasy-village, horror-house, sci-fi-station, …)", guidelines: [
+      "Use to quickly load common world patterns without memorizing saved-world identifiers.",
+      "Template ids are lightweight metadata — the actual world data is loaded via gen_load_world.",
+      "Use localgpt_gen_list_templates to discover available templates.",
+      "1-shot CLI via `localgpt-gen mcp-server --connect`. No persistent process.",
+      "Requires localgpt-gen running interactively (Bevy window) for relay to work.",
+    ] },
+    { name: "localgpt_gen_list_templates", label: "Gen List Templates", desc: "List available world templates with metadata. Optionally filter by tag. Does not require localgpt-gen running.", schema: listTemplatesSchema, fn: genListTemplates, snippet: "localgpt_gen_list_templates: discover available world templates and their metadata", guidelines: [
+      "Use before localgpt_gen_template to discover which templates are available.",
+      "Pass a tag to filter (e.g. tag=medieval, tag=sci-fi, tag=interior).",
+      "This is a pure-metadata lookup — it does not spawn localgpt-gen or touch the network.",
+    ] },
     // Scene management
     { name: "localgpt_gen_clear", label: "Gen Clear Scene", desc: "Clear all entities, behaviors, and audio via 1-shot CLI. Requires localgpt-gen running.", schema: clearSceneSchema, fn: genClearScene, snippet: "localgpt_gen_clear: clear the entire scene" },
     { name: "localgpt_gen_undo", label: "Gen Undo", desc: "Undo last scene edit via 1-shot CLI. Requires localgpt-gen running.", schema: undoSchema, fn: genUndo, snippet: "localgpt_gen_undo: undo last scene edit" },
