@@ -55,7 +55,7 @@ export function sanitizePathSegment(raw: string): string {
 
   const sanitized = trimmed
     .replace(/[<>:"|?*\u0000-\u001f]/g, "-")
-    .replace(/[\/]+/g, "-")
+    .replace(/[\\/]+/g, "-")
     .replace(/\s+/g, "-")
     .replace(/-+/g, "-")
     .replace(/^-+|-+$/g, "");
@@ -102,13 +102,13 @@ export function resolveProjectScreenshotsDirectory(
   screenshotsSubdir = DEFAULT_SCREENSHOTS_SUBDIR,
 ): string {
   const normalizedProject = projectSlug
-    .split(/[\/]+/)
+    .split(/[\\/]+/)
     .filter(Boolean)
     .map(sanitizePathSegment)
     .join(path.sep);
 
   const normalizedSubdir = screenshotsSubdir
-    .split(/[\/]+/)
+    .split(/[\\/]+/)
     .filter(Boolean)
     .map(sanitizePathSegment)
     .join(path.sep);
@@ -192,24 +192,32 @@ export async function ensureScreenshotDirectory(
 }
 
 export interface VaultScreenshotExportParams {
-  path?: string;
-  vault_project?: string;
-  vault_root?: string;
-  screenshots_dir?: string;
-  world?: string;
-  session?: string;
-  filename?: string;
+  path?: unknown;
+  vault_project?: unknown;
+  vault_root?: unknown;
+  screenshots_dir?: unknown;
+  world?: unknown;
+  session?: unknown;
+  filename?: unknown;
+}
+
+function nonEmptyString(value: unknown): value is string {
+  return typeof value === "string" && value.trim().length > 0;
+}
+
+function trimmedString(value: unknown): string | undefined {
+  return nonEmptyString(value) ? value.trim() : undefined;
 }
 
 export function wantsVaultScreenshotExport(params: VaultScreenshotExportParams): boolean {
-  if (params.path?.trim()) return false;
+  if (nonEmptyString(params.path)) return false;
   return Boolean(
-    params.vault_project?.trim()
-    || params.vault_root?.trim()
-    || params.world?.trim()
-    || params.session?.trim()
-    || params.filename?.trim()
-    || params.screenshots_dir?.trim(),
+    nonEmptyString(params.vault_project)
+    || nonEmptyString(params.vault_root)
+    || nonEmptyString(params.world)
+    || nonEmptyString(params.session)
+    || nonEmptyString(params.filename)
+    || nonEmptyString(params.screenshots_dir),
   );
 }
 
@@ -228,18 +236,24 @@ export async function prepareVaultScreenshotExport(
 ): Promise<ResolvedVaultScreenshotPath | null> {
   if (!wantsVaultScreenshotExport(options.params)) return null;
 
-  const resolveConfig = options.resolveConfig ?? resolveLocalGptConfig;
-  const config = await resolveConfig({
-    env: options.env,
-    cwd: options.cwd,
-    workspace: options.workspace,
-  });
+  const explicitVaultRoot = trimmedString(options.params.vault_root);
+  const explicitProjectSlug = trimmedString(options.params.vault_project);
+  let inferred: VaultContext | null = null;
 
-  const inferred = parseVaultContextFromWorkspace(config.workspace);
-  const vaultRoot = options.params.vault_root?.trim()
-    ? path.resolve(expandPath(options.params.vault_root.trim(), options.env))
+  if (!explicitVaultRoot || !explicitProjectSlug) {
+    const resolveConfig = options.resolveConfig ?? resolveLocalGptConfig;
+    const config = await resolveConfig({
+      env: options.env,
+      cwd: options.cwd,
+      workspace: options.workspace,
+    });
+    inferred = parseVaultContextFromWorkspace(config.workspace);
+  }
+
+  const vaultRoot = explicitVaultRoot
+    ? path.resolve(expandPath(explicitVaultRoot, options.env))
     : inferred?.vaultRoot;
-  const projectSlug = options.params.vault_project?.trim() || inferred?.projectSlug;
+  const projectSlug = explicitProjectSlug || inferred?.projectSlug;
 
   if (!vaultRoot) {
     throw new VaultScreenshotPathError(
@@ -255,10 +269,10 @@ export async function prepareVaultScreenshotExport(
   const resolved = resolveVaultScreenshotPath({
     vaultRoot,
     projectSlug,
-    screenshotsSubdir: options.params.screenshots_dir,
-    filename: options.params.filename,
-    world: options.params.world,
-    session: options.params.session,
+    screenshotsSubdir: trimmedString(options.params.screenshots_dir),
+    filename: trimmedString(options.params.filename),
+    world: trimmedString(options.params.world),
+    session: trimmedString(options.params.session),
     now: options.now,
   });
 

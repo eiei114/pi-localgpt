@@ -17,6 +17,7 @@ const {
 
 function createMockSpawn(responses) {
   let callCount = 0;
+  const messages = [];
 
   return {
     spawnFn: (_command, _args, _opts) => {
@@ -32,6 +33,7 @@ function createMockSpawn(responses) {
         write: (data, cb) => {
           try {
             const msg = JSON.parse(data.trim());
+            messages.push(msg);
             const key = msg.method === "tools/call" ? msg.params?.name : msg.method;
             const response = responses.get(key) ?? responses.get(msg.method);
             if (response !== undefined) {
@@ -54,6 +56,7 @@ function createMockSpawn(responses) {
       return emitter;
     },
     get callCount() { return callCount; },
+    get messages() { return messages; },
   };
 }
 
@@ -78,6 +81,13 @@ test("resolveProjectScreenshotsDirectory builds vault-safe project path", () => 
   assert.equal(
     directory,
     path.resolve("/vault/4_Project/OSS/pi-localgpt/screenshots"),
+  );
+});
+
+test("resolveProjectScreenshotsDirectory rejects backslash traversal", () => {
+  assert.throws(
+    () => resolveProjectScreenshotsDirectory("/vault", "..\\escape"),
+    VaultScreenshotPathError,
   );
 });
 
@@ -119,6 +129,7 @@ test("resolveVaultScreenshotPath rejects paths that escape the vault", () => {
 
 test("sanitizePathSegment normalizes unsafe characters", () => {
   assert.equal(sanitizePathSegment(" hero/world:1 "), "hero-world-1");
+  assert.equal(sanitizePathSegment(" hero\\world:1 "), "hero-world-1");
 });
 
 test("buildScreenshotFilename works without optional context", () => {
@@ -195,6 +206,43 @@ test("prepareVaultScreenshotExport supports explicit vault_project override", as
   assert.match(resolved.filename, /review-1/);
 });
 
+test("prepareVaultScreenshotExport skips config resolution with explicit vault context", async () => {
+  const resolved = await prepareVaultScreenshotExport({
+    params: {
+      vault_root: "/vault",
+      vault_project: "Roblox/LevelKit",
+      world: "Lobby",
+    },
+    resolveConfig: async () => {
+      throw new Error("resolveConfig should not be called");
+    },
+    mkdirFs: { async mkdir() {} },
+  });
+
+  assert.ok(resolved);
+  assert.equal(
+    resolved.directory,
+    path.resolve("/vault/4_Project/Roblox/LevelKit/screenshots"),
+  );
+});
+
+test("prepareVaultScreenshotExport ignores non-string trigger fields", async () => {
+  const resolved = await prepareVaultScreenshotExport({
+    params: {
+      world: 123,
+      session: false,
+      filename: {},
+      screenshots_dir: [],
+    },
+    resolveConfig: async () => {
+      throw new Error("resolveConfig should not be called");
+    },
+    mkdirFs: { async mkdir() {} },
+  });
+
+  assert.equal(resolved, null);
+});
+
 test("genExportScreenshot resolves vault path before MCP export", async () => {
   const { genExportScreenshot } = await import("../lib/gen-tools.ts");
 
@@ -239,4 +287,6 @@ test("genExportScreenshot resolves vault path before MCP export", async () => {
   assert.ok(result.content[0].text.includes("4_Project/OSS/pi-localgpt/screenshots"));
   assert.equal(mock.callCount, 1);
   assert.deepEqual(mkdirCalls, [path.dirname(expectedPath)]);
+  const toolCall = mock.messages.find((msg) => msg.method === "tools/call");
+  assert.equal(toolCall?.params?.arguments?.path, expectedPath);
 });
