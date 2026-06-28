@@ -41,6 +41,16 @@ test("resolveTemplate finds built-in template by id", () => {
   assert.equal(t.worldName, "fantasy-village");
 });
 
+test("resolveTemplate matches template ids case-insensitively", () => {
+  const fantasy = resolveTemplate("Fantasy-Village");
+  assert.ok(fantasy, "template should be found");
+  assert.equal(fantasy.id, "fantasy-village");
+
+  const station = resolveTemplate("SCI-FI-STATION");
+  assert.ok(station, "template should be found");
+  assert.equal(station.id, "sci-fi-station");
+});
+
 test("resolveTemplate returns undefined for unknown id", () => {
   const t = resolveTemplate("does-not-exist");
   assert.equal(t, undefined);
@@ -79,7 +89,7 @@ test("resolveTemplate returns worldName when specified", () => {
   assert.equal(t.worldName, "actual-world-name");
 });
 
-test("resolveTemplate defaults worldName to id when omitted", () => {
+test("resolveTemplate preserves omitted worldName", () => {
   const customRegistry = {
     templates: [{
       id: "no-world-name",
@@ -139,7 +149,7 @@ test("genLoadTemplate returns error for unknown template id", async () => {
 
 test("genLoadTemplate error details include requestedId and availableIds", async () => {
   const result = await genLoadTemplate({ id: "nope" });
-  assert.ok(result.details.requestedId, "nope");
+  assert.equal(result.details.requestedId, "nope");
   assert.ok(Array.isArray(result.details.availableIds));
   assert.ok(result.details.availableIds.length > 0);
 });

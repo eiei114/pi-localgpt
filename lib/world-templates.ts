@@ -103,7 +103,8 @@ export function resolveTemplate(
   id: string,
   registry: WorldTemplateRegistry = defaultRegistry,
 ): WorldTemplate | undefined {
-  return registry.templates.find((t) => t.id === id);
+  const normalizedId = id.toLowerCase();
+  return registry.templates.find((t) => t.id.toLowerCase() === normalizedId);
 }
 
 /**
@@ -170,17 +171,9 @@ export async function genLoadTemplate(
   const worldName = template.worldName ?? template.id;
   const loadParams = { name: worldName };
   const result = await genLoadWorld(loadParams, options);
-  const resultText = typeof result === "string"
-    ? result
-    : JSON.stringify(result, null, 2);
 
   return {
-    content: [
-      {
-        type: "text" as const,
-        text: `Loaded template "${template.name}" (world: ${worldName})\n\n${resultText}`,
-      },
-    ],
+    ...result,
     details: {
       template,
       worldName,

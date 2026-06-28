@@ -6,7 +6,7 @@ World templates are **named, reusable world patterns** built on top of the exist
 
 A **template** is just metadata — it does not duplicate any world data:
 
-```
+```text
 Template id  ──resolve──▶  saved-world name  ──gen_load_world──▶  world data
 ```
 
@@ -49,20 +49,20 @@ Resolves the template to its underlying saved-world name and calls `gen_load_wor
 
 1. **Discover templates:**
 
-   ```
+   ```text
    localgpt_gen_list_templates  →  shows all 5 templates with tags
    localgpt_gen_list_templates { "tag": "sci-fi" }  →  filters to sci-fi-station
    ```
 
 2. **Load a template:**
 
-   ```
+   ```text
    localgpt_gen_template { "id": "fantasy-village" }
    ```
 
    This resolves `fantasy-village` → saved-world name `fantasy-village` and calls:
 
-   ```
+   ```text
    localgpt_gen_load { "name": "fantasy-village" }
    ```
 
