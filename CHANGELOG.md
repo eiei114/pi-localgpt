@@ -2,6 +2,14 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.8.0] - 2026-06-28
+
+### Added
+
+- Roblox trend → prototype workflow via `localgpt_gen_plan_from_roblox_trend` and `/localgpt:plan-from-roblox-trend`.
+- Stable prompt shaping that separates research facts from `speculative_ideas` with explicit guardrails.
+- `docs/roblox-trend-prototype.md` with a trend-summary-to-prototype example.
+
 ## [0.7.0] - 2026-06-28
 
 ### Added

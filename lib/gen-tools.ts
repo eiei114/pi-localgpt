@@ -22,6 +22,10 @@ import {
   prepareVaultNotePlanRequest,
   type LoadVaultNoteOptions,
 } from "./vault-note-plan-layout.ts";
+import {
+  prepareRobloxTrendPrototypeRequest,
+  type LoadRobloxTrendSummaryOptions,
+} from "./roblox-trend-prototype.ts";
 
 // ── Helper ──────────────────────────────────────────────────────────
 
@@ -318,6 +322,64 @@ export async function genPlanFromVaultNote(
     planningDescription: prepared.description,
     originalLength: prepared.originalLength,
     cleanedLength: prepared.cleanedLength,
+    truncated: prepared.truncated,
+    maxChars: prepared.maxChars,
+    layout: result,
+  });
+}
+
+const robloxTrendSummarySchema = Type.Object({
+  title: Type.Optional(Type.String({ description: "Short label for the trend packet." })),
+  genre: Type.String({ description: "Required Roblox genre or category signal from research." }),
+  theme: Type.Optional(Type.String({ description: "Visual or thematic signals from the trend summary." })),
+  mechanics: Type.Optional(Type.Union([
+    Type.String({ description: "Comma- or newline-separated mechanics list." }),
+    Type.Array(Type.String()),
+  ], { description: "Gameplay mechanics observed in trending experiences." })),
+  audience: Type.Optional(Type.String({ description: "Audience or session-length signals from research." })),
+  market_signals: Type.Optional(Type.Union([
+    Type.String({ description: "Comma- or newline-separated market observations." }),
+    Type.Array(Type.String()),
+  ], { description: "Factual chart or research observations — not speculative design." })),
+  speculative_ideas: Type.Optional(Type.Union([
+    Type.String({ description: "Comma- or newline-separated prototype hypotheses." }),
+    Type.Array(Type.String()),
+  ], { description: "Optional design additions kept separate from research facts." })),
+});
+
+export interface PlanFromRobloxTrendOptions extends GenCallOptions, LoadRobloxTrendSummaryOptions {}
+
+export const planFromRobloxTrendSchema = Type.Object({
+  summary: Type.Optional(robloxTrendSummarySchema),
+  summary_path: Type.Optional(Type.String({
+    description: "Path to a JSON file with Roblox trend summary fields. Mutually exclusive with summary.",
+  })),
+  style: Type.Optional(Type.String({ description: "Style hint passed to gen_plan_layout: medieval, sci-fi, urban, etc." })),
+  max_chars: Type.Optional(Type.Number({ description: "Maximum planning description length after shaping. Default: 6000." })),
+});
+
+export async function genPlanFromRobloxTrend(
+  params: Record<string, unknown>,
+  options?: PlanFromRobloxTrendOptions,
+) {
+  const prepared = await prepareRobloxTrendPrototypeRequest(params, options);
+  const genParams: Record<string, unknown> = { description: prepared.planningDescription };
+  if (typeof params.style === "string" && params.style.trim()) {
+    genParams.style = params.style.trim();
+  }
+
+  const result = await genCallTool("gen_plan_layout", genParams, options);
+  const text = typeof result === "string" ? result : JSON.stringify(result, null, 2);
+  const summary = `Planned layout from Roblox trend "${prepared.title}" (${prepared.source})${prepared.truncated ? " (summary truncated)" : ""}.`;
+
+  return toolResult(`${summary}\n\n${text}`, {
+    source: prepared.source,
+    title: prepared.title,
+    planningDescription: prepared.planningDescription,
+    layoutBrief: prepared.layoutBrief,
+    facts: prepared.facts,
+    speculative: prepared.speculative,
+    guardrails: prepared.guardrails,
     truncated: prepared.truncated,
     maxChars: prepared.maxChars,
     layout: result,
