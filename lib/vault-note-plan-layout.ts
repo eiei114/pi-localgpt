@@ -101,7 +101,10 @@ export function truncatePlanDescription(
 ): { text: string; truncated: boolean } {
   if (description.length <= maxChars) return { text: description, truncated: false };
   const suffix = "\n\n[truncated for gen_plan_layout]";
-  const limit = Math.max(0, maxChars - suffix.length);
+  if (maxChars <= suffix.length) {
+    return { text: description.slice(0, maxChars), truncated: true };
+  }
+  const limit = maxChars - suffix.length;
   return { text: `${description.slice(0, limit).trimEnd()}${suffix}`, truncated: true };
 }
 
@@ -169,6 +172,13 @@ export async function loadVaultNoteRaw(
 
   const cwd = options.cwd ?? process.cwd();
   const absolutePath = path.resolve(cwd, notePath);
+  const relativePath = path.relative(cwd, absolutePath);
+  if (relativePath.startsWith("..") || path.isAbsolute(relativePath)) {
+    throw new VaultNotePlanError("note_path must stay within the configured vault root.");
+  }
+  if (!/\.md$/i.test(absolutePath)) {
+    throw new VaultNotePlanError("note_path must point to a markdown note.");
+  }
   const readFileFs = options.readFileFs ?? defaultReadFileFs;
 
   let raw: string;

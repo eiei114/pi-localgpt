@@ -60,6 +60,15 @@ test("truncatePlanDescription marks oversized notes", () => {
   assert.ok(text.length <= 50);
 });
 
+test("truncatePlanDescription honors maxChars when smaller than suffix", () => {
+  const longText = "x".repeat(100);
+  const maxChars = 20;
+  const { text, truncated } = truncatePlanDescription(longText, maxChars);
+  assert.equal(truncated, true);
+  assert.equal(text.length, maxChars);
+  assert.equal(text, longText.slice(0, maxChars));
+});
+
 test("prepareVaultNotePlanFromRaw rejects empty notes after cleanup", () => {
   assert.throws(
     () => prepareVaultNotePlanFromRaw("---\ntitle: Empty\n---\n\n<!-- only comments -->\n", { reference: "inline note" }),
@@ -82,6 +91,26 @@ test("prepareVaultNotePlanRequest reads note_path via injected fs", async () => 
   assert.equal(prepared.source.path, "notes/world.md");
   assert.ok(prepared.description.includes("[Source: notes/world.md"));
   assert.ok(prepared.description.includes("Harbor District"));
+});
+
+test("prepareVaultNotePlanRequest rejects note_path outside vault root", async () => {
+  await assert.rejects(
+    () => prepareVaultNotePlanRequest(
+      { note_path: "../../.env" },
+      { cwd: "/vault/root" },
+    ),
+    (error) => error instanceof VaultNotePlanError && error.message.includes("vault root"),
+  );
+});
+
+test("prepareVaultNotePlanRequest rejects non-markdown note_path", async () => {
+  await assert.rejects(
+    () => prepareVaultNotePlanRequest(
+      { note_path: "notes/secrets.env" },
+      { cwd: "/vault/root" },
+    ),
+    (error) => error instanceof VaultNotePlanError && error.message.includes("markdown note"),
+  );
 });
 
 test("prepareVaultNotePlanRequest rejects missing note and note_path", async () => {
