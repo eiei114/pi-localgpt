@@ -982,6 +982,12 @@ export async function genAudioEmitter(
 
 // ── Export screenshot ───────────────────────────────────────────────
 
+// ── World templates ───────────────────────────────────────────────
+
+export { loadTemplateSchema, listTemplatesSchema, genLoadTemplate, genListTemplates } from "./world-templates.ts";
+
+// ── Export screenshot ───────────────────────────────────────────────
+
 export const exportScreenshotSchema = Type.Object({
   path: Type.Optional(Type.String({
     description: "Explicit output file path. When omitted, vault export fields can target 4_Project/<project>/screenshots/.",

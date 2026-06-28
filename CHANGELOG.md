@@ -2,6 +2,15 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.7.0] - 2026-06-28
+
+### Added
+
+- Shareable world template metadata layer with five built-in starter templates.
+- `localgpt_gen_list_templates` for discovering templates by id, tags, and style hints.
+- `localgpt_gen_template` for loading named templates through the existing saved-world load flow.
+- `docs/world-templates.md` with discovery, load, and custom-template examples.
+
 ## [0.6.0] - 2026-06-28
 
 ### Added
