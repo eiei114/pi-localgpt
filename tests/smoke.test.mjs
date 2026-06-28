@@ -37,5 +37,8 @@ test("pi-localgpt library modules load", async () => {
   assert.equal(typeof localgptMemorySearch.formatMemorySearchHits, "function");
   assert.equal(typeof commandInput.promptForCommandInput, "function");
   assert.equal(typeof vaultNotePlanLayout.prepareVaultNotePlanRequest, "function");
+  const robloxTrendPrototype = await import("../lib/roblox-trend-prototype.ts");
+  assert.equal(typeof robloxTrendPrototype.prepareRobloxTrendPrototypeRequest, "function");
   assert.equal(typeof genTools.genPlanFromVaultNote, "function");
+  assert.equal(typeof genTools.genPlanFromRobloxTrend, "function");
 });

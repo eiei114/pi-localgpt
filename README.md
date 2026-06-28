@@ -77,12 +77,14 @@ pi -e .
 
 1. Start `localgpt-gen` interactively (Bevy window opens)
 2. Check relay: `/localgpt:gen-status` or `localgpt_gen_status`
-3. Build world: `localgpt_gen_plan_from_note` (vault memo) or `localgpt_gen_plan` (short text) → `localgpt_gen_blockout` → `localgpt_gen_populate`
+3. Build world: `localgpt_gen_plan_from_roblox_trend` (Roblox trend summary), `localgpt_gen_plan_from_note` (vault memo), or `localgpt_gen_plan` (short text) → `localgpt_gen_blockout` → `localgpt_gen_populate`
 4. Save design: `localgpt_design_log_save`
 
 See [`skills/localgpt-gen/SKILL.md`](skills/localgpt-gen/SKILL.md) for the full workflow guide.
 
 Vault design memos: [`docs/vault-note-plan-layout.md`](docs/vault-note-plan-layout.md).
+
+Roblox trend summaries: [`docs/roblox-trend-prototype.md`](docs/roblox-trend-prototype.md).
 
 ## Package contents
 
@@ -163,6 +165,7 @@ Vault design memos: [`docs/vault-note-plan-layout.md`](docs/vault-note-plan-layo
 |---|---|
 | `localgpt_gen_plan` | Text → layout plan |
 | `localgpt_gen_plan_from_note` | Vault markdown note → layout plan |
+| `localgpt_gen_plan_from_roblox_trend` | Roblox trend summary → layout plan |
 | `localgpt_gen_blockout` | Apply blockout |
 | `localgpt_gen_modify_blockout` | Edit blockout |
 | `localgpt_gen_populate` | Fill region |
@@ -187,6 +190,7 @@ Vault design memos: [`docs/vault-note-plan-layout.md`](docs/vault-note-plan-layo
 |---|---|
 | `/localgpt:gen-status` | Check binary + relay |
 | `/localgpt:plan-from-note <path>` | Plan layout from vault markdown file |
+| `/localgpt:plan-from-roblox-trend <path>` | Plan layout from Roblox trend JSON file |
 
 Arguments are not required. Details are entered after the command runs.
 

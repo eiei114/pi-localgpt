@@ -21,6 +21,7 @@ import {
   setEnvironmentSchema, genSetEnvironment,
   planLayoutSchema, genPlanLayout,
   planFromVaultNoteSchema, genPlanFromVaultNote,
+  planFromRobloxTrendSchema, genPlanFromRobloxTrend,
   applyBlockoutSchema, genApplyBlockout,
   modifyBlockoutSchema, genModifyBlockout,
   populateRegionSchema, genPopulateRegion,
@@ -151,6 +152,28 @@ export default function (pi: ExtensionAPI) {
 
       try {
         const result = await genPlanFromVaultNote({ note_path: notePath }, { signal: ctx.signal });
+        const text = result.content[0]?.text ?? JSON.stringify(result.details);
+        ctx.ui.notify(text, "info");
+      } catch (error) {
+        ctx.ui.notify(error instanceof Error ? error.message : String(error), "error");
+      }
+    },
+  });
+
+  pi.registerCommand("localgpt:plan-from-roblox-trend", {
+    description: "Plan a world layout from a JSON Roblox trend summary file path",
+    handler: async (args, ctx) => {
+      const summaryPath = args.trim();
+      if (!summaryPath) {
+        ctx.ui.notify(
+          "Provide a JSON summary path, e.g. /localgpt:plan-from-roblox-trend 4_Project/Roblox/trends/neon-obby.json",
+          "warning",
+        );
+        return;
+      }
+
+      try {
+        const result = await genPlanFromRobloxTrend({ summary_path: summaryPath }, { signal: ctx.signal });
         const text = result.content[0]?.text ?? JSON.stringify(result.details);
         ctx.ui.notify(text, "info");
       } catch (error) {
@@ -329,6 +352,14 @@ export default function (pi: ExtensionAPI) {
       "Use when the layout brief lives in Obsidian vault markdown with frontmatter, wiki links, or headings.",
       "Prefer localgpt_gen_plan for short, already-clean text without vault markdown noise.",
       "Accepts inline note text or note_path; output includes a short [Source: ...] prefix for traceability.",
+      "1-shot CLI via `localgpt-gen mcp-server --connect`. No persistent process.",
+      "Requires localgpt-gen running interactively (Bevy window) for relay to work.",
+    ] },
+    { name: "localgpt_gen_plan_from_roblox_trend", label: "Gen Plan From Roblox Trend", desc: "Shape a compact Roblox trend summary into a stable LocalGPT prototype prompt and run gen_plan_layout via 1-shot CLI. Requires localgpt-gen running.", schema: planFromRobloxTrendSchema, fn: genPlanFromRobloxTrend, snippet: "localgpt_gen_plan_from_roblox_trend: turn Roblox market research into a rough 3D concept layout plan", guidelines: [
+      "Use when you already have a compact Roblox trend/research summary (genre, theme, mechanics, market signals).",
+      "Keeps research facts separate from speculative_ideas; does not call Roblox APIs or external research tools.",
+      "Accepts inline summary object or summary_path JSON; output includes guardrails and a layout brief for repeated experiments.",
+      "Complements separate Roblox research workflows — it only shapes prompts for LocalGPT prototyping.",
       "1-shot CLI via `localgpt-gen mcp-server --connect`. No persistent process.",
       "Requires localgpt-gen running interactively (Bevy window) for relay to work.",
     ] },
