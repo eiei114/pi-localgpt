@@ -13,6 +13,7 @@ test("pi-localgpt library modules load", async () => {
   const designLogWrite = await import("../lib/design-log-write.ts");
   const localgptMemorySearch = await import("../lib/localgpt-memory-search.ts");
   const commandInput = await import("../lib/command-input.ts");
+  const vaultNotePlanLayout = await import("../lib/vault-note-plan-layout.ts");
 
   assert.equal(typeof client.checkGenBinary, "function");
   assert.equal(typeof client.genCallTool, "function");
@@ -35,4 +36,6 @@ test("pi-localgpt library modules load", async () => {
   assert.equal(typeof localgptMemorySearch.runMemorySearch, "function");
   assert.equal(typeof localgptMemorySearch.formatMemorySearchHits, "function");
   assert.equal(typeof commandInput.promptForCommandInput, "function");
+  assert.equal(typeof vaultNotePlanLayout.prepareVaultNotePlanRequest, "function");
+  assert.equal(typeof genTools.genPlanFromVaultNote, "function");
 });

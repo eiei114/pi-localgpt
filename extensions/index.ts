@@ -20,6 +20,7 @@ import {
   setLightSchema, genSetLight,
   setEnvironmentSchema, genSetEnvironment,
   planLayoutSchema, genPlanLayout,
+  planFromVaultNoteSchema, genPlanFromVaultNote,
   applyBlockoutSchema, genApplyBlockout,
   modifyBlockoutSchema, genModifyBlockout,
   populateRegionSchema, genPopulateRegion,
@@ -126,6 +127,28 @@ export default function (pi: ExtensionAPI) {
 
       try {
         const result = await genDesignLogSave({ content }, { signal: ctx.signal });
+        const text = result.content[0]?.text ?? JSON.stringify(result.details);
+        ctx.ui.notify(text, "info");
+      } catch (error) {
+        ctx.ui.notify(error instanceof Error ? error.message : String(error), "error");
+      }
+    },
+  });
+
+  pi.registerCommand("localgpt:plan-from-note", {
+    description: "Plan a world layout from a vault markdown note file path",
+    handler: async (args, ctx) => {
+      const notePath = args.trim();
+      if (!notePath) {
+        ctx.ui.notify(
+          "Provide a note file path, e.g. /localgpt:plan-from-note 4_Project/MyGame/world-memo.md",
+          "warning",
+        );
+        return;
+      }
+
+      try {
+        const result = await genPlanFromVaultNote({ note_path: notePath }, { signal: ctx.signal });
         const text = result.content[0]?.text ?? JSON.stringify(result.details);
         ctx.ui.notify(text, "info");
       } catch (error) {
@@ -300,6 +323,13 @@ export default function (pi: ExtensionAPI) {
     { name: "localgpt_gen_environment", label: "Gen Set Environment", desc: "Set background color and ambient light via 1-shot CLI. Requires localgpt-gen running.", schema: setEnvironmentSchema, fn: genSetEnvironment, snippet: "localgpt_gen_environment: set background and ambient lighting" },
     // WorldGen pipeline
     { name: "localgpt_gen_plan", label: "Gen Plan Layout", desc: "Generate a structured world layout plan from text description via 1-shot CLI. Requires localgpt-gen running.", schema: planLayoutSchema, fn: genPlanLayout, snippet: "localgpt_gen_plan: plan a world layout from a text description" },
+    { name: "localgpt_gen_plan_from_note", label: "Gen Plan From Vault Note", desc: "Clean vault markdown and run gen_plan_layout in one step via 1-shot CLI. Requires localgpt-gen running.", schema: planFromVaultNoteSchema, fn: genPlanFromVaultNote, snippet: "localgpt_gen_plan_from_note: turn a vault design memo into a gen_plan_layout request", guidelines: [
+      "Use when the layout brief lives in Obsidian vault markdown with frontmatter, wiki links, or headings.",
+      "Prefer localgpt_gen_plan for short, already-clean text without vault markdown noise.",
+      "Accepts inline note text or note_path; output includes a short [Source: ...] prefix for traceability.",
+      "1-shot CLI via `localgpt-gen mcp-server --connect`. No persistent process.",
+      "Requires localgpt-gen running interactively (Bevy window) for relay to work.",
+    ] },
     { name: "localgpt_gen_blockout", label: "Gen Apply Blockout", desc: "Apply a blockout spec to create terrain, regions, and paths via 1-shot CLI. Requires localgpt-gen running.", schema: applyBlockoutSchema, fn: genApplyBlockout, snippet: "localgpt_gen_blockout: apply blockout from plan_layout result" },
     { name: "localgpt_gen_modify_blockout", label: "Gen Modify Blockout", desc: "Add, remove, resize, or move blockout regions via 1-shot CLI. Requires localgpt-gen running.", schema: modifyBlockoutSchema, fn: genModifyBlockout, snippet: "localgpt_gen_modify_blockout: edit blockout regions incrementally" },
     { name: "localgpt_gen_populate", label: "Gen Populate Region", desc: "Populate a blockout region with hero/medium/decorative entities via 1-shot CLI. Requires localgpt-gen running.", schema: populateRegionSchema, fn: genPopulateRegion, snippet: "localgpt_gen_populate: fill a region with procedural placement" },
@@ -321,13 +351,13 @@ export default function (pi: ExtensionAPI) {
     { name: "localgpt_gen_redo", label: "Gen Redo", desc: "Redo previously undone edit via 1-shot CLI. Requires localgpt-gen running.", schema: redoSchema, fn: genRedo, snippet: "localgpt_gen_redo: redo last undone edit" },
   ];
 
-  for (const { name, label, desc, schema, fn, snippet } of genToolMeta) {
+  for (const { name, label, desc, schema, fn, snippet, guidelines } of genToolMeta) {
     pi.registerTool({
       name,
       label,
       description: desc,
       promptSnippet: snippet,
-      promptGuidelines: [
+      promptGuidelines: guidelines ?? [
         "1-shot CLI via `localgpt-gen mcp-server --connect`. No persistent process.",
         "Requires localgpt-gen running interactively (Bevy window) for relay to work.",
       ],
