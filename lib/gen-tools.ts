@@ -18,6 +18,10 @@ import {
   type VaultScreenshotExportParams,
 } from "./vault-screenshot-export.ts";
 import { resolveLocalGptConfig } from "./localgpt-config.ts";
+import {
+  prepareVaultNotePlanRequest,
+  type LoadVaultNoteOptions,
+} from "./vault-note-plan-layout.ts";
 
 // ── Helper ──────────────────────────────────────────────────────────
 
@@ -284,6 +288,40 @@ export async function genPlanLayout(
     typeof result === "string" ? result : JSON.stringify(result, null, 2),
     result,
   );
+}
+
+export interface PlanFromVaultNoteOptions extends GenCallOptions, LoadVaultNoteOptions {}
+
+export const planFromVaultNoteSchema = Type.Object({
+  note: Type.Optional(Type.String({ description: "Raw vault note markdown text. Mutually exclusive with note_path." })),
+  note_path: Type.Optional(Type.String({ description: "Path to a vault markdown note file. Mutually exclusive with note." })),
+  style: Type.Optional(Type.String({ description: "Style hint passed to gen_plan_layout: medieval, sci-fi, nature, urban, etc." })),
+  max_chars: Type.Optional(Type.Number({ description: "Maximum planning description length after cleanup. Default: 8000." })),
+});
+
+export async function genPlanFromVaultNote(
+  params: Record<string, unknown>,
+  options?: PlanFromVaultNoteOptions,
+) {
+  const prepared = await prepareVaultNotePlanRequest(params, options);
+  const genParams: Record<string, unknown> = { description: prepared.description };
+  if (typeof params.style === "string" && params.style.trim()) {
+    genParams.style = params.style.trim();
+  }
+
+  const result = await genCallTool("gen_plan_layout", genParams, options);
+  const text = typeof result === "string" ? result : JSON.stringify(result, null, 2);
+  const summary = `Planned layout from ${prepared.source.reference}${prepared.truncated ? " (note truncated)" : ""}.`;
+
+  return toolResult(`${summary}\n\n${text}`, {
+    source: prepared.source,
+    planningDescription: prepared.description,
+    originalLength: prepared.originalLength,
+    cleanedLength: prepared.cleanedLength,
+    truncated: prepared.truncated,
+    maxChars: prepared.maxChars,
+    layout: result,
+  });
 }
 
 // ── Apply blockout ──────────────────────────────────────────────────

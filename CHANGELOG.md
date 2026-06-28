@@ -2,6 +2,15 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.6.0] - 2026-06-28
+
+### Added
+
+- Vault note → plan workflow via `localgpt_gen_plan_from_note` and `/localgpt:plan-from-note`.
+- Markdown cleanup for frontmatter, headings, wiki links, and blockquotes before `gen_plan_layout`.
+- Lightweight `[Source: ...]` trace header in shaped planning prompts.
+- `docs/vault-note-plan-layout.md` with note-shape guidance and when to prefer `localgpt_gen_plan`.
+
 ## [0.5.0] - 2026-06-28
 
 ### Added

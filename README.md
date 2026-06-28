@@ -49,7 +49,7 @@ pi install npm:pi-localgpt -l
 Pin a specific version when you want reproducible installs:
 
 ```bash
-pi install npm:pi-localgpt@0.5.0
+pi install npm:pi-localgpt@0.6.0
 ```
 
 Or install from GitHub:
@@ -77,10 +77,12 @@ pi -e .
 
 1. Start `localgpt-gen` interactively (Bevy window opens)
 2. Check relay: `/localgpt:gen-status` or `localgpt_gen_status`
-3. Build world: `localgpt_gen_plan` → `localgpt_gen_blockout` → `localgpt_gen_populate`
+3. Build world: `localgpt_gen_plan_from_note` (vault memo) or `localgpt_gen_plan` (short text) → `localgpt_gen_blockout` → `localgpt_gen_populate`
 4. Save design: `localgpt_design_log_save`
 
 See [`skills/localgpt-gen/SKILL.md`](skills/localgpt-gen/SKILL.md) for the full workflow guide.
+
+Vault design memos: [`docs/vault-note-plan-layout.md`](docs/vault-note-plan-layout.md).
 
 ## Package contents
 
@@ -160,6 +162,7 @@ See [`skills/localgpt-gen/SKILL.md`](skills/localgpt-gen/SKILL.md) for the full 
 | Tool | Purpose |
 |---|---|
 | `localgpt_gen_plan` | Text → layout plan |
+| `localgpt_gen_plan_from_note` | Vault markdown note → layout plan |
 | `localgpt_gen_blockout` | Apply blockout |
 | `localgpt_gen_modify_blockout` | Edit blockout |
 | `localgpt_gen_populate` | Fill region |
@@ -183,6 +186,7 @@ See [`skills/localgpt-gen/SKILL.md`](skills/localgpt-gen/SKILL.md) for the full 
 | Command | Purpose |
 |---|---|
 | `/localgpt:gen-status` | Check binary + relay |
+| `/localgpt:plan-from-note <path>` | Plan layout from vault markdown file |
 
 Arguments are not required. Details are entered after the command runs.
 
