@@ -184,7 +184,7 @@ export default function (pi: ExtensionAPI) {
   });
 
   pi.registerCommand("localgpt:remember-worldgen", {
-    description: "Save a WorldGen design rationale memory linked to recent worldgen artifacts (memory_save)",
+    description: "Save a WorldGen design rationale memory (rationale only; use the localgpt_remember_worldgen tool to attach plan/evaluate/export/world references)",
     handler: async (args, ctx) => {
       const rationale = await promptForCommandInput(
         ctx,
@@ -198,6 +198,10 @@ export default function (pi: ExtensionAPI) {
       }
 
       try {
+        // This command intentionally saves rationale only. To link plan /
+        // evaluate / export / world artifacts, call the
+        // localgpt_remember_worldgen tool with the `references` object — the
+        // slash command cannot collect structured references inline.
         const result = await genMemoryWorldgenSave({ rationale }, { signal: ctx.signal });
         const text = result.content[0]?.text ?? JSON.stringify(result.details);
         ctx.ui.notify(text, "info");

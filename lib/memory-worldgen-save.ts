@@ -125,6 +125,22 @@ function truncateExcerpt(text: string, maxChars: number): { text: string; trunca
   return { text: `${trimmed.slice(0, limit).trimEnd()}${ellipsis}`, truncated: true };
 }
 
+function buildStructuralFingerprint(record: Record<string, unknown>): string {
+  // Emit only derived structural metadata (keys, value types, array/number
+  // counts) — never raw artifact values — so unknown shapes cannot leak
+  // scene/entity payloads into the saved memory entry.
+  const entries = Object.keys(record)
+    .sort()
+    .map((key) => {
+      const value = record[key];
+      if (Array.isArray(value)) return `${key}[${value.length}]`;
+      if (value === null) return `${key}=null`;
+      if (typeof value === "object") return `${key}:object`;
+      return `${key}:${typeof value}`;
+    });
+  return entries.length > 0 ? entries.join(", ") : "object";
+}
+
 /**
  * Reduce an arbitrary worldgen artifact (plan result, evaluate screenshot
  * payload, export path object, saved-world name) into a compact excerpt that
@@ -165,13 +181,9 @@ export function summarizeWorldgenArtifact(
       return truncateExcerpt(summaryParts.join(" · "), maxChars).text;
     }
 
-    // Unknown object shape: keep a tiny JSON fingerprint instead of the whole blob.
-    try {
-      const fingerprint = JSON.stringify(record);
-      return truncateExcerpt(fingerprint, Math.min(maxChars, 200)).text;
-    } catch {
-      return undefined;
-    }
+    // Unknown object shape: keep a tiny structural fingerprint (keys/types/counts
+    // only) instead of the whole blob. Raw artifact values are never embedded.
+    return truncateExcerpt(buildStructuralFingerprint(record), Math.min(maxChars, 200)).text;
   }
 
   return undefined;
@@ -210,8 +222,10 @@ export function buildWorldgenReferenceSections(
 }
 
 function clampMaxChars(value: unknown): number {
-  if (typeof value === "number" && Number.isFinite(value) && value >= 256) {
-    return Math.floor(value);
+  if (typeof value === "number" && Number.isFinite(value)) {
+    // Preserve caller intent: clamp tiny positive caps up to the minimum
+    // supported size instead of widening them to the default.
+    return Math.max(256, Math.floor(value));
   }
   return MEMORY_WORLDBUILD_DEFAULT_MAX_CHARS;
 }

@@ -43,10 +43,15 @@ test("summarizeWorldgenArtifact pulls description and region count from plan obj
   assert.ok(!excerpt.includes("deep"));
 });
 
-test("summarizeWorldgenArtifact falls back to tiny JSON fingerprint for unknown object", () => {
-  const excerpt = summarizeWorldgenArtifact({ weird: { nested: true }, other: 7 }, 200);
+test("summarizeWorldgenArtifact emits only structural metadata for unknown object", () => {
+  const excerpt = summarizeWorldgenArtifact({ weird: { nested: true }, other: 7, list: [1, 2, 3] }, 200);
   assert.ok(excerpt.length <= 200);
-  assert.ok(excerpt.startsWith("{"));
+  // Structural fingerprint only — no raw values leak.
+  assert.match(excerpt, /other:number/);
+  assert.match(excerpt, /weird:object/);
+  assert.match(excerpt, /list\[3\]/);
+  assert.ok(!excerpt.includes("nested"));
+  assert.ok(!excerpt.includes("{") || !excerpt.startsWith("{"));
 });
 
 test("summarizeWorldgenArtifact returns undefined for empty/missing inputs", () => {
@@ -141,6 +146,17 @@ test("prepareMemoryWorldgenSave keeps payload within max_chars", () => {
   assert.match(prepared.content, /worldgen:world/);
 });
 
+test("prepareMemoryWorldgenSave clamps sub-256 caps up to the minimum instead of widening", () => {
+  const prepared = prepareMemoryWorldgenSave({
+    rationale: "tight cap rationale",
+    max_chars: 100,
+  });
+
+  // A caller asking for 100 chars should NOT be silently expanded to 4000.
+  assert.equal(prepared.maxChars, 256);
+  assert.ok(prepared.content.length <= 256);
+});
+
 test("prepareMemoryWorldgenSave never embeds raw large scene JSON", () => {
   const hugeScene = {
     description: "harbor",
@@ -186,7 +202,7 @@ function createMockSpawn(responses) {
     spawnFn: () => {
       callCount++;
       const emitter = new EventEmitter();
-      const stdout = Readable({ read() {} });
+      const stdout = new Readable({ read() {} });
       const origPush = stdout.push.bind(stdout);
       const pushLine = (line) => origPush(`${line}\n`);
 

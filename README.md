@@ -198,7 +198,7 @@ Roblox trend summaries: [`docs/roblox-trend-prototype.md`](docs/roblox-trend-pro
 | `/localgpt:gen-status` | Check binary + relay |
 | `/localgpt:plan-from-note <path>` | Plan layout from vault markdown file |
 | `/localgpt:plan-from-roblox-trend <path>` | Plan layout from Roblox trend JSON file |
-| `/localgpt:remember-worldgen` | Save WorldGen design rationale (memory_save) |
+| `/localgpt:remember-worldgen` | Save WorldGen design rationale (rationale only; use the tool to attach references) |
 
 Arguments are not required. Details are entered after the command runs.
 
