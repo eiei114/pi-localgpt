@@ -2,6 +2,15 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.10.0] - 2026-06-30
+
+### Added
+
+- Vault prompt-pack export via `localgpt_export_prompt_pack` (DOT-397): saves a reusable worldgen prompt-pack (description + style + tags) as a deterministic markdown file under a vault project `prompt-packs/` folder.
+- `lib/vault-prompt-pack-export.ts` path/content shaping module with vault-safe resolution, deterministic `<timestamp>__<name>__<session>.md` filenames, explicit overwrite rules (refuse by default; `overwrite=true` to replace), and frontmatter + sectioned markdown output.
+- `docs/vault-prompt-pack-export.md` with folder shape, overwrite rules, and a worldgen/prototype end-to-end example.
+- Tests covering success, missing project inference, explicit vault override, missing description, and overwrite refuse/replace behavior.
+
 ## [0.9.0] - 2026-06-29
 
 ### Added

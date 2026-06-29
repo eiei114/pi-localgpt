@@ -3,6 +3,7 @@ import { Type } from "typebox";
 import { promptForCommandInput } from "../lib/command-input.ts";
 import { genCallTool } from "../lib/gen-mcp-client.ts";
 import { formatGenStatus, inspectGenStatus } from "../lib/gen-status.ts";
+import { exportPromptPackSchema, exportPromptPack } from "../lib/vault-prompt-pack-export.ts";
 import { formatLocalGptStatus, inspectLocalGptStatus, statusNotificationLevel } from "../lib/localgpt-status.ts";
 import {
   LOCALGPT_MEMORY_SEARCH_DEFAULT_MAX_CHARS,
@@ -403,6 +404,12 @@ export default function (pi: ExtensionAPI) {
     { name: "localgpt_gen_regenerate", label: "Gen Regenerate", desc: "Regenerate regions after blockout edits, preserving manual placements via 1-shot CLI. Requires localgpt-gen running.", schema: regenerateSchema, fn: genRegenerate, snippet: "localgpt_gen_regenerate: refresh regions after blockout changes" },
     // Export & world skills
     { name: "localgpt_gen_export_screenshot", label: "Gen Export Screenshot", desc: "Export viewport screenshot to file or vault project screenshots/ via 1-shot CLI. Requires localgpt-gen running.", schema: exportScreenshotSchema, fn: genExportScreenshot, snippet: "localgpt_gen_export_screenshot: export screenshot to vault project screenshots/" },
+    { name: "localgpt_export_prompt_pack", label: "Export Prompt Pack", desc: "Save a reusable LocalGPT prompt-pack (description + style + tags) as a deterministic markdown file under a vault project prompt-packs/ folder. Local vault write; does not require localgpt-gen.", schema: exportPromptPackSchema, fn: exportPromptPack, snippet: "localgpt_export_prompt_pack: save a reusable worldgen prompt-pack into vault project prompt-packs/", guidelines: [
+      "Use to capture a repeatable worldgen recipe (description + style + tags) next to the project notes that iterate on it, instead of one-off scratch output.",
+      "Output goes to <vault>/4_Project/<project>/prompt-packs/<timestamp>__<name>__<session>.md by default; vault_project/vault_root are inferred from [design-log].workspace when it lives under 4_Project/<project>/.",
+      "Refuses to overwrite an existing file by default; pass overwrite=true to replace it.",
+      "This is a local filesystem write — it does not spawn localgpt-gen or require the relay.",
+    ] },
     { name: "localgpt_gen_export_gltf", label: "Gen Export glTF", desc: "Export scene as glTF/GLB via 1-shot CLI. Requires localgpt-gen running.", schema: exportGltfSchema, fn: genExportGltf, snippet: "localgpt_gen_export_gltf: export scene to glTF file" },
     { name: "localgpt_gen_export_html", label: "Gen Export HTML", desc: "Export scene as self-contained HTML via 1-shot CLI. Requires localgpt-gen running.", schema: exportHtmlSchema, fn: genExportHtml, snippet: "localgpt_gen_export_html: export scene to HTML file with Three.js" },
     { name: "localgpt_gen_save", label: "Gen Save World", desc: "Save scene to a world skill via 1-shot CLI. Requires localgpt-gen running.", schema: saveWorldSchema, fn: genSaveWorld, snippet: "localgpt_gen_save: save current scene as a reusable world skill" },

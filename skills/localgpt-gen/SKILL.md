@@ -116,6 +116,7 @@ Vault メモから plan する場合は [`docs/vault-note-plan-layout.md`](../..
 | HTML（Three.js）出力 | `localgpt_gen_export_html` |
 | ワールド保存 | `localgpt_gen_save` |
 | ワールド読込 | `localgpt_gen_load` |
+| 再利用可能なプロンプトパック保存（vault プロジェクト） | `localgpt_export_prompt_pack`（`name` / `description` / `vault_project`、`overwrite=true` で差し替え） |
 
 ## Design log ツール
 
