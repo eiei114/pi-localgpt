@@ -22,7 +22,7 @@ Use `prompt_packs_dir` when a project documents a different vault-safe folder, f
 ## Overwrite rules
 
 - The directory is created recursively when missing.
-- An existing file at the resolved path is **refused by default**. The call fails with a clear message naming the vault-relative path and the `overwrite=true` flag.
+- An existing file at the resolved path is **refused by default** using an atomic exclusive-create (`wx`) write, so concurrent exports resolving the same filename cannot silently replace each other. On conflict the call fails with a clear message naming the vault-relative path and the `overwrite=true` flag.
 - Pass `overwrite: true` to replace an existing file. The result reports `overwritten: true` so you can tell a fresh write from a replacement.
 
 ## Output content
@@ -31,12 +31,12 @@ Each prompt-pack is a markdown file with YAML frontmatter and fixed sections:
 
 ```markdown
 ---
-title: Forest Demo
-style: nature
-tags: [forest, altar]
+title: "Forest Demo"
+style: "nature"
+tags: ["forest","altar"]
 exported_at: 2026-06-28T05:15:30.000Z
-session: pi-session-7
-vault_project: OSS/pi-localgpt
+session: "pi-session-7"
+vault_project: "OSS/pi-localgpt"
 ---
 
 # Forest Demo
@@ -54,6 +54,8 @@ nature
 - forest
 - altar
 ```
+
+Frontmatter values are YAML-serialized (double-quoted), so names, styles, sessions, or tags containing colons, commas, or other YAML-special characters remain valid frontmatter.
 
 `## Style`, `## Tags`, and `## Notes` sections are omitted when the corresponding fields are not provided.
 

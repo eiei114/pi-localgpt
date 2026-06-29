@@ -26,7 +26,7 @@ export const FALLBACK_PACK_NAME = "pack";
 
 export interface PromptPackFs {
   mkdir(dirPath: string, options: { recursive: boolean }): Promise<unknown>;
-  writeFile(filePath: string, data: string): Promise<unknown>;
+  writeFile(filePath: string, data: string, options?: { flag?: string }): Promise<unknown>;
   stat(filePath: string): Promise<{ isFile(): boolean }>;
 }
 
@@ -255,13 +255,14 @@ export function shapePromptPackContent(input: ShapePromptPackContentInput): stri
   }
 
   const lines: string[] = [];
+  const yamlValue = (value: unknown) => JSON.stringify(value);
   lines.push("---");
-  lines.push(`title: ${name}`);
-  if (style) lines.push(`style: ${style}`);
-  if (tags.length > 0) lines.push(`tags: [${tags.join(", ")}]`);
+  lines.push(`title: ${yamlValue(name)}`);
+  if (style) lines.push(`style: ${yamlValue(style)}`);
+  if (tags.length > 0) lines.push(`tags: ${yamlValue(tags)}`);
   lines.push(`exported_at: ${now.toISOString()}`);
-  if (session) lines.push(`session: ${session}`);
-  if (projectSlug) lines.push(`vault_project: ${projectSlug}`);
+  if (session) lines.push(`session: ${yamlValue(session)}`);
+  if (projectSlug) lines.push(`vault_project: ${yamlValue(projectSlug)}`);
   lines.push("---");
   lines.push("");
   lines.push(`# ${name}`);
@@ -424,22 +425,28 @@ export async function prepareVaultPromptPackExport(
 
   const overwrite = options.params.overwrite === true;
   let alreadyExists = false;
-  try {
-    const stat = await promptPacksFs.stat(resolved.absolutePath);
-    alreadyExists = stat.isFile();
-  } catch (error) {
-    const code = (error as NodeJS.ErrnoException).code;
-    if (code !== "ENOENT") throw error;
-    alreadyExists = false;
+  if (overwrite) {
+    try {
+      const stat = await promptPacksFs.stat(resolved.absolutePath);
+      alreadyExists = stat.isFile();
+    } catch (error) {
+      const code = (error as NodeJS.ErrnoException).code;
+      if (code !== "ENOENT") throw error;
+      alreadyExists = false;
+    }
+    await promptPacksFs.writeFile(resolved.absolutePath, content);
+  } else {
+    try {
+      await promptPacksFs.writeFile(resolved.absolutePath, content, { flag: "wx" });
+    } catch (error) {
+      if ((error as NodeJS.ErrnoException).code === "EEXIST") {
+        throw new VaultPromptPackPathError(
+          `prompt-pack already exists at ${resolved.vaultRelativePath}; pass overwrite=true to replace it.`,
+        );
+      }
+      throw error;
+    }
   }
-
-  if (alreadyExists && !overwrite) {
-    throw new VaultPromptPackPathError(
-      `prompt-pack already exists at ${resolved.vaultRelativePath}; pass overwrite=true to replace it.`,
-    );
-  }
-
-  await promptPacksFs.writeFile(resolved.absolutePath, content);
 
   return {
     directory: resolved.directory,

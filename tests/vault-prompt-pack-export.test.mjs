@@ -28,8 +28,14 @@ function createMemoryFs(seed) {
       if (options?.recursive) return undefined;
       return undefined;
     },
-    async writeFile(filePath, data) {
-      files.set(path.resolve(String(filePath)), String(data));
+    async writeFile(filePath, data, options) {
+      const resolved = path.resolve(String(filePath));
+      if (options?.flag === "wx" && files.has(resolved)) {
+        const err = new Error(`EEXIST: ${resolved}`);
+        err.code = "EEXIST";
+        throw err;
+      }
+      files.set(resolved, String(data));
     },
     async stat(filePath) {
       const resolved = path.resolve(String(filePath));
@@ -136,11 +142,11 @@ test("shapePromptPackContent renders frontmatter + sections", () => {
   });
 
   assert.match(content, /^---\n/);
-  assert.match(content, /title: Forest Lobby/);
-  assert.match(content, /style: nature/);
-  assert.match(content, /tags: \[forest, altar\]/);
+  assert.match(content, /title: "Forest Lobby"/);
+  assert.match(content, /style: "nature"/);
+  assert.match(content, /tags: \["forest","altar"\]/);
   assert.match(content, /exported_at: 2026-06-28T05:15:30.000Z/);
-  assert.match(content, /session: pi-7/);
+  assert.match(content, /session: "pi-7"/);
   assert.match(content, /# Forest Lobby/);
   assert.match(content, /## Description[\s\S]*A misty forest clearing with a stone altar\./);
   assert.match(content, /## Style[\s\S]*nature/);
@@ -152,6 +158,26 @@ test("shapePromptPackContent rejects empty description", () => {
     () => shapePromptPackContent({ description: "   " }),
     VaultPromptPackPathError,
   );
+});
+
+test("shapePromptPackContent YAML-quotes values with special characters", () => {
+  const content = shapePromptPackContent({
+    name: "Forest: Lobby",
+    description: "desc",
+    style: "nature, dark",
+    tags: ["forest tag", "altar"],
+    session: "pi:7",
+    now: NOW,
+  });
+
+  // Colons/commas are enclosed in double-quoted YAML scalars so they cannot
+  // break frontmatter parsing or inject extra keys.
+  assert.match(content, /title: "Forest: Lobby"/);
+  assert.match(content, /style: "nature, dark"/);
+  assert.match(content, /tags: \["forest-tag","altar"\]/);
+  assert.match(content, /session: "pi:7"/);
+  // No unquoted bare-key injection.
+  assert.doesNotMatch(content, /\nevil: true/);
 });
 
 test("ensurePromptPackDirectory creates missing folders", async () => {
