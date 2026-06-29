@@ -26,6 +26,12 @@ import {
   prepareRobloxTrendPrototypeRequest,
   type LoadRobloxTrendSummaryOptions,
 } from "./roblox-trend-prototype.ts";
+import {
+  MEMORY_WORLDBUILD_DEFAULT_MAX_CHARS,
+  prepareMemoryWorldgenSave,
+  type MemoryWorldgenSaveInput,
+  type WorldgenArtifactKind,
+} from "./memory-worldgen-save.ts";
 
 // ── Helper ──────────────────────────────────────────────────────────
 
@@ -715,6 +721,62 @@ export async function genDesignLogLog(
     typeof result === "string" ? result : JSON.stringify(result, null, 2),
     result,
   );
+}
+
+// ── Memory + WorldGen linkage (DOT-361) ─────────────────────────────
+
+const worldgenArtifactSchema = Type.Union([
+  Type.String({ description: "Inline note, pointer, or short excerpt of a worldgen artifact." }),
+  Type.Record(Type.String(), Type.Unknown(), { description: "Compact worldgen output object (plan result, evaluate payload, export info, saved-world metadata). Whole scene JSON is excerpted, not embedded." }),
+]);
+
+export const memoryWorldgenSaveSchema = Type.Object({
+  rationale: Type.String({
+    description: "Why the world was built this way. The durable design intent that later sessions should recall.",
+  }),
+  summary: Type.Optional(Type.String({ description: "One-line summary used as the entry title when `title` is omitted." })),
+  title: Type.Optional(Type.String({ description: "Optional design log entry title. Default: summary or 'WorldGen design rationale'." })),
+  tags: Type.Optional(Type.Union([
+    Type.String({ description: "Comma- or newline-separated tags." }),
+    Type.Array(Type.String()),
+  ], { description: "Tags attached to the memory entry (normalized to lowercase kebab-case)." })),
+  references: Type.Optional(Type.Object({
+    plan: Type.Optional(worldgenArtifactSchema),
+    evaluate: Type.Optional(worldgenArtifactSchema),
+    export: Type.Optional(worldgenArtifactSchema),
+    world: Type.Optional(worldgenArtifactSchema),
+  }, { description: "References to recent worldgen outputs. Each value is excerpted to a compact pointer; whole scene JSON is never embedded. Missing kinds are recorded in a fallback note." })),
+  max_chars: Type.Optional(Type.Number({ description: `Maximum memory entry length. Default: ${MEMORY_WORLDBUILD_DEFAULT_MAX_CHARS}.` })),
+});
+
+export interface MemoryWorldgenSaveOptions extends GenCallOptions {
+  /** Test seam: override shaping instead of using the real `prepareMemoryWorldgenSave`. */
+  prepare?: (input: MemoryWorldgenSaveInput) => ReturnType<typeof prepareMemoryWorldgenSave>;
+}
+
+export async function genMemoryWorldgenSave(
+  params: Record<string, unknown>,
+  options?: MemoryWorldgenSaveOptions,
+) {
+  const prepare = options?.prepare ?? prepareMemoryWorldgenSave;
+  const prepared = prepare(params as unknown as MemoryWorldgenSaveInput);
+
+  const result = await genCallTool(
+    "memory_save",
+    { content: prepared.content, ...(prepared.title ? { title: prepared.title } : {}) },
+    options,
+  );
+
+  const text = typeof result === "string" ? result : JSON.stringify(result, null, 2);
+  const summary = `Saved WorldGen design rationale (${prepared.referencesUsed.length} reference(s), ${prepared.fallbacks.length} fallback(s)).`;
+
+  return toolResult(`${summary}\n\n${text}`, {
+    referencesUsed: prepared.referencesUsed as WorldgenArtifactKind[],
+    fallbacks: prepared.fallbacks as WorldgenArtifactKind[],
+    truncated: prepared.truncated,
+    title: prepared.title,
+    save: result,
+  });
 }
 
 // Backward-compatible aliases for existing memory-named wrappers.

@@ -2,6 +2,16 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.9.0] - 2026-06-29
+
+### Added
+
+- WorldGen design rationale memory workflow via `localgpt_remember_worldgen` and `/localgpt:remember-worldgen` (DOT-361).
+- `lib/memory-worldgen-save.ts` shaping module that excerpts plan/evaluate/export/world artifacts into compact pointers and never embeds raw scene JSON.
+- Missing-reference fallback: partial worldgen iterations still produce a recallable entry with a `[no worldgen artifacts referenced for: ...]` note.
+- `docs/memory-worldgen-save.md` with the recommended post-iteration save pattern and when to prefer it over generic `localgpt_design_log_save`.
+- Tests for payload shaping, artifact excerpting, compactness caps, and missing-reference fallback behavior.
+
 ## [0.8.0] - 2026-06-28
 
 ### Added

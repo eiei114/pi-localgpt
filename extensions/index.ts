@@ -62,6 +62,7 @@ import {
   exportScreenshotSchema, genExportScreenshot,
   loadTemplateSchema, genLoadTemplate,
   listTemplatesSchema, genListTemplates,
+  memoryWorldgenSaveSchema, genMemoryWorldgenSave,
 } from "../lib/gen-tools.ts";
 
 export default function (pi: ExtensionAPI) {
@@ -174,6 +175,30 @@ export default function (pi: ExtensionAPI) {
 
       try {
         const result = await genPlanFromRobloxTrend({ summary_path: summaryPath }, { signal: ctx.signal });
+        const text = result.content[0]?.text ?? JSON.stringify(result.details);
+        ctx.ui.notify(text, "info");
+      } catch (error) {
+        ctx.ui.notify(error instanceof Error ? error.message : String(error), "error");
+      }
+    },
+  });
+
+  pi.registerCommand("localgpt:remember-worldgen", {
+    description: "Save a WorldGen design rationale memory linked to recent worldgen artifacts (memory_save)",
+    handler: async (args, ctx) => {
+      const rationale = await promptForCommandInput(
+        ctx,
+        "Remember WorldGen rationale:",
+        "Why the world was built this way (durable design intent)",
+        args,
+      );
+      if (!rationale) {
+        ctx.ui.notify("Remember-worldgen cancelled. Enter design rationale text.", "warning");
+        return;
+      }
+
+      try {
+        const result = await genMemoryWorldgenSave({ rationale }, { signal: ctx.signal });
         const text = result.content[0]?.text ?? JSON.stringify(result.details);
         ctx.ui.notify(text, "info");
       } catch (error) {
@@ -389,6 +414,13 @@ export default function (pi: ExtensionAPI) {
       "Use before localgpt_gen_template to discover which templates are available.",
       "Pass a tag to filter (e.g. tag=medieval, tag=sci-fi, tag=interior).",
       "This is a pure-metadata lookup — it does not spawn localgpt-gen or touch the network.",
+    ] },
+    { name: "localgpt_remember_worldgen", label: "Remember WorldGen", desc: "Save a concise memory entry linking design rationale with recent worldgen outputs (plan/evaluate/export/world) via memory_save. Excerpts artifacts instead of dumping raw scene JSON. Requires localgpt-gen running.", schema: memoryWorldgenSaveSchema, fn: genMemoryWorldgenSave, snippet: "localgpt_remember_worldgen: persist why a generated world was built this way, linked to plan/evaluate/export artifacts", guidelines: [
+      "Use after a worldgen iteration (plan → blockout → populate → evaluate → export) to save the design rationale alongside compact artifact references.",
+      "Pass references.plan / references.evaluate / references.export / references.world with the relevant tool outputs. Each is excerpted to a short pointer — never embed whole scene JSON.",
+      "Missing references are recorded in a fallback note so a partial iteration still produces a recallable entry.",
+      "Prefer this over generic localgpt_design_log_save when the saved context is tied to specific worldgen artifacts.",
+      "Requires localgpt-gen running interactively (Bevy window) for the 1-shot relay to work.",
     ] },
     // Scene management
     { name: "localgpt_gen_clear", label: "Gen Clear Scene", desc: "Clear all entities, behaviors, and audio via 1-shot CLI. Requires localgpt-gen running.", schema: clearSceneSchema, fn: genClearScene, snippet: "localgpt_gen_clear: clear the entire scene" },
