@@ -47,6 +47,7 @@ Run after `pi -e .` or `pi install` with a local package path.
 - [ ] `localgpt_gen_save` / `localgpt_gen_load` saves and loads worlds.
 - [ ] `localgpt_gen_export_gltf` exports glTF file.
 - [ ] `localgpt_gen_export_html` exports self-contained HTML.
+- [ ] `localgpt_export_prompt_pack` writes a markdown prompt-pack into `4_Project/<project>/prompt-packs/`; refuses overwrite unless `overwrite=true`.
 
 ## Generic call
 
