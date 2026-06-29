@@ -8,7 +8,7 @@
 [![Pi package](https://img.shields.io/badge/pi-package-purple.svg)](https://pi.dev/packages)
 [![Trusted Publishing](https://img.shields.io/badge/npm-Trusted%20Publishing-blue.svg)](docs/release.md)
 
-> 50 curated tools for LocalGPT Gen 3D world building, via unified 1-shot MCP bridge.
+> 51 curated tools for LocalGPT Gen 3D world building, via unified 1-shot MCP bridge.
 
 ## What this is
 
@@ -105,6 +105,13 @@ Roblox trend summaries: [`docs/roblox-trend-prototype.md`](docs/roblox-trend-pro
 | `localgpt_gen_status` | Binary + relay check |
 | `localgpt_gen_call` | Generic tool wrapper |
 
+### Memory & Design Log
+
+| Tool | Purpose |
+|---|---|
+| `localgpt_design_log_search` / `_get` / `_save` / `_log` | Design log search, read, durable save, daily append |
+| `localgpt_remember_worldgen` | Save design rationale linked to plan/evaluate/export/world artifacts |
+
 ### Scene
 
 | Tool | Purpose |
@@ -191,6 +198,7 @@ Roblox trend summaries: [`docs/roblox-trend-prototype.md`](docs/roblox-trend-pro
 | `/localgpt:gen-status` | Check binary + relay |
 | `/localgpt:plan-from-note <path>` | Plan layout from vault markdown file |
 | `/localgpt:plan-from-roblox-trend <path>` | Plan layout from Roblox trend JSON file |
+| `/localgpt:remember-worldgen` | Save WorldGen design rationale (rationale only; use the tool to attach references) |
 
 Arguments are not required. Details are entered after the command runs.
 
