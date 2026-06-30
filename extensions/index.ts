@@ -10,6 +10,10 @@ import {
   runMemorySearch,
 } from "../lib/localgpt-memory-search.ts";
 import {
+  LOCALGPT_MEMORY_GET_DEFAULT_MAX_CHARS,
+  runMemoryGet,
+} from "../lib/localgpt-memory-get.ts";
+import {
   screenshotSchema, genScreenshot,
   sceneInfoSchema, genSceneInfo,
   entityInfoSchema, genEntityInfo,
@@ -109,6 +113,36 @@ export default function (pi: ExtensionAPI) {
 
       try {
         const result = await runMemorySearch(query, { signal: ctx.signal });
+        ctx.ui.notify(result.text, result.ok ? "info" : "warning");
+      } catch (error) {
+        ctx.ui.notify(error instanceof Error ? error.message : String(error), "error");
+      }
+    },
+  });
+
+  pi.registerCommand("localgpt:get", {
+    description: "Read a line slice from LocalGPT workspace memory via upstream memory_get (1-shot MCP)",
+    handler: async (args, ctx) => {
+      const trimmed = args.trim();
+      if (!trimmed) {
+        ctx.ui.notify(
+          "Provide path and optional line range, e.g. /localgpt:get DESIGN-LOG.md 10 20",
+          "warning",
+        );
+        return;
+      }
+
+      const parts = trimmed.split(/\s+/);
+      const path = parts[0]!;
+      const startLine = parts[1] ? Number.parseInt(parts[1], 10) : undefined;
+      const endLine = parts[2] ? Number.parseInt(parts[2], 10) : undefined;
+
+      try {
+        const result = await runMemoryGet(path, {
+          startLine,
+          endLine,
+          signal: ctx.signal,
+        });
         ctx.ui.notify(result.text, result.ok ? "info" : "warning");
       } catch (error) {
         ctx.ui.notify(error instanceof Error ? error.message : String(error), "error");
@@ -224,6 +258,12 @@ export default function (pi: ExtensionAPI) {
     limit: Type.Optional(Type.Number({ description: "Maximum number of hits. Default: 10." })),
   });
 
+  const memoryGetParameters = Type.Object({
+    path: Type.String({ description: "Workspace-relative file path from localgpt_memory_search results (hit.file)." }),
+    startLine: Type.Optional(Type.Number({ description: "1-based start line from search hit line_start. Default: 1." })),
+    endLine: Type.Optional(Type.Number({ description: "1-based end line from search hit line_end. Default: file end." })),
+  });
+
   pi.registerTool({
     name: "localgpt_memory_search",
     label: "LocalGPT Memory Search",
@@ -231,7 +271,7 @@ export default function (pi: ExtensionAPI) {
     promptSnippet: "localgpt_memory_search: recall cross-session notes from LocalGPT workspace memory",
     promptGuidelines: [
       "Use for cross-session preferences, assistant context, and long-running project notes stored in LocalGPT.",
-      "Follow with localgpt_memory_get when you need the full entry from a hit ID.",
+      "Follow with localgpt_memory_get when you need full lines from a search hit (use path plus line_start/line_end).",
       "When localgpt-gen is missing or the relay is unreachable, returns status-style setup hints instead of spawning blindly.",
     ],
     parameters: memorySearchParameters,
@@ -248,6 +288,38 @@ export default function (pi: ExtensionAPI) {
           query: result.query,
           hits: result.hits,
           searchMode: result.searchMode,
+          hints: result.hints,
+        },
+        isError: !result.ok,
+      };
+    },
+  });
+
+  pi.registerTool({
+    name: "localgpt_memory_get",
+    label: "LocalGPT Memory Get",
+    description: `Read a line slice from LocalGPT workspace memory via upstream memory_get. Output truncated to ${LOCALGPT_MEMORY_GET_DEFAULT_MAX_CHARS} chars. Requires localgpt-gen running.`,
+    promptSnippet: "localgpt_memory_get: read full lines from a memory file path returned by search",
+    promptGuidelines: [
+      "Call after localgpt_memory_search when snippet context is insufficient.",
+      "Pass path plus optional startLine/endLine from search hit line_start/line_end.",
+      "When localgpt-gen is missing or the relay is unreachable, returns status-style setup hints instead of spawning blindly.",
+    ],
+    parameters: memoryGetParameters,
+    async execute(_toolCallId, params, signal) {
+      const result = await runMemoryGet(params.path, {
+        startLine: params.startLine,
+        endLine: params.endLine,
+        signal,
+      });
+
+      return {
+        content: [{ type: "text", text: result.text }],
+        details: {
+          ok: result.ok,
+          path: result.path,
+          slice: result.slice,
+          getMode: result.getMode,
           hints: result.hints,
         },
         isError: !result.ok,
@@ -338,7 +410,6 @@ export default function (pi: ExtensionAPI) {
     { name: "localgpt_design_log_get", label: "Design Log Get", desc: "Read a specific LocalGPT design log entry by ID via 1-shot CLI. Requires localgpt-gen running.", schema: designLogGetSchema, fn: genDesignLogGet, snippet: "localgpt_design_log_get: read a full design log entry from a search result ID" },
     { name: "localgpt_design_log_save", label: "Design Log Save", desc: "Save durable cross-session level-design context to the LocalGPT design log via 1-shot CLI. Requires localgpt-gen running.", schema: designLogSaveSchema, fn: genDesignLogSave, snippet: "localgpt_design_log_save: persist stable level-design decisions and preferences across Pi sessions" },
     { name: "localgpt_design_log_log", label: "Design Log Log", desc: "Append a timestamped daily design log entry via 1-shot CLI. Requires localgpt-gen running.", schema: designLogLogSchema, fn: genDesignLogLog, snippet: "localgpt_design_log_log: append a timestamped note to today's LocalGPT design log" },
-    { name: "localgpt_memory_get", label: "Memory Get (Legacy)", desc: "Legacy alias for localgpt_design_log_get. Requires localgpt-gen running.", schema: designLogGetSchema, fn: genDesignLogGet, snippet: "localgpt_memory_get: legacy alias for localgpt_design_log_get" },
     { name: "localgpt_memory_save", label: "Memory Save (Legacy)", desc: "Legacy alias for localgpt_design_log_save. Requires localgpt-gen running.", schema: designLogSaveSchema, fn: genDesignLogSave, snippet: "localgpt_memory_save: legacy alias for localgpt_design_log_save" },
     { name: "localgpt_memory_log", label: "Memory Log (Legacy)", desc: "Legacy alias for localgpt_design_log_log. Requires localgpt-gen running.", schema: designLogLogSchema, fn: genDesignLogLog, snippet: "localgpt_memory_log: legacy alias for localgpt_design_log_log" },
     // Player & NPC

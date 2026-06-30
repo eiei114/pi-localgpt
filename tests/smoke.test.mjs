@@ -12,6 +12,7 @@ test("pi-localgpt library modules load", async () => {
   const designLogRead = await import("../lib/design-log-read.ts");
   const designLogWrite = await import("../lib/design-log-write.ts");
   const localgptMemorySearch = await import("../lib/localgpt-memory-search.ts");
+  const localgptMemoryGet = await import("../lib/localgpt-memory-get.ts");
   const commandInput = await import("../lib/command-input.ts");
   const vaultNotePlanLayout = await import("../lib/vault-note-plan-layout.ts");
 
@@ -35,6 +36,8 @@ test("pi-localgpt library modules load", async () => {
   assert.equal(typeof designLogWrite.saveDesignLog, "function");
   assert.equal(typeof localgptMemorySearch.runMemorySearch, "function");
   assert.equal(typeof localgptMemorySearch.formatMemorySearchHits, "function");
+  assert.equal(typeof localgptMemoryGet.runMemoryGet, "function");
+  assert.equal(typeof localgptMemoryGet.formatMemoryGetSlice, "function");
   assert.equal(typeof commandInput.promptForCommandInput, "function");
   assert.equal(typeof vaultNotePlanLayout.prepareVaultNotePlanRequest, "function");
   const robloxTrendPrototype = await import("../lib/roblox-trend-prototype.ts");
