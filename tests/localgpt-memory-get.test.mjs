@@ -69,6 +69,7 @@ test("formatMemoryGetUnavailable includes status-style hints", () => {
 });
 
 test("runMemoryGet returns line slice when workspace and gen are ready", async () => {
+  let toolName;
   const result = await runMemoryGet("DESIGN-LOG.md", {
     startLine: 10,
     endLine: 12,
@@ -96,20 +97,63 @@ test("runMemoryGet returns line slice when workspace and gen are ready", async (
       tools: [{ name: "memory_get" }],
       hints: [],
     }),
-    callTool: async (_tool, args) => ({
-      path: args.path,
-      content: "matched slice",
-      start_line: args.start_line,
-      end_line: args.end_line,
-    }),
+    callTool: async (tool, args) => {
+      toolName = tool;
+      return {
+        path: args.path,
+        content: "matched slice",
+        start_line: args.from,
+        end_line: (args.from ?? 1) + (args.lines ?? 1) - 1,
+      };
+    },
   });
 
   assert.equal(result.ok, true);
+  assert.equal(toolName, "memory_get");
   assert.equal(result.getMode, "slice");
   assert.equal(result.slice?.path, "DESIGN-LOG.md");
   assert.equal(result.slice?.startLine, 10);
   assert.equal(result.slice?.endLine, 12);
   assert.match(result.text, /matched slice/);
+});
+
+test("runMemoryGet returns unavailable status without calling upstream when memory_get is unavailable", async () => {
+  let called = false;
+  const result = await runMemoryGet("DESIGN-LOG.md", {
+    inspectLocal: async () => ({
+      ok: true,
+      searchMode: "keyword",
+      configPath: "/tmp/config.toml",
+      configFound: true,
+      workspace: "/tmp/ws",
+      workspaceSource: "config",
+      workspaceExists: true,
+      files: {
+        designLog: "/tmp/ws/DESIGN-LOG.md",
+        todayLog: "/tmp/ws/design-log/2026-06-24.md",
+        designLogExists: true,
+        todayLogExists: false,
+      },
+      hints: [],
+    }),
+    inspectGen: async () => ({
+      ok: false,
+      binary: { found: false, command: "localgpt-gen", error: "missing" },
+      relayReachable: false,
+      toolCount: 0,
+      tools: [],
+      hints: ["install localgpt-gen"],
+    }),
+    callTool: async () => {
+      called = true;
+      return { content: "noop" };
+    },
+  });
+
+  assert.equal(result.ok, false);
+  assert.equal(called, false);
+  assert.equal(result.getMode, "unavailable");
+  assert.match(result.text, /localgpt_memory_get: unavailable/);
 });
 
 test("runMemoryGet surfaces structured invalid path error from upstream", async () => {
@@ -144,6 +188,8 @@ test("runMemoryGet surfaces structured invalid path error from upstream", async 
   });
 
   assert.equal(result.ok, false);
+  assert.equal(result.getMode, "unavailable");
+  assert.equal(result.errorKind, "invalid_path");
   assert.match(result.text, /invalid path/);
   assert.match(result.text, /missing\.md/);
 });

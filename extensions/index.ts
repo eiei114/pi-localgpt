@@ -13,6 +13,11 @@ import {
   LOCALGPT_MEMORY_GET_DEFAULT_MAX_CHARS,
   runMemoryGet,
 } from "../lib/localgpt-memory-get.ts";
+
+function parseStrictPositiveInteger(raw: string): number | undefined {
+  if (!/^[1-9]\d*$/.test(raw)) return undefined;
+  return Number(raw);
+}
 import {
   screenshotSchema, genScreenshot,
   sceneInfoSchema, genSceneInfo,
@@ -134,8 +139,17 @@ export default function (pi: ExtensionAPI) {
 
       const parts = trimmed.split(/\s+/);
       const path = parts[0]!;
-      const startLine = parts[1] ? Number.parseInt(parts[1], 10) : undefined;
-      const endLine = parts[2] ? Number.parseInt(parts[2], 10) : undefined;
+      const startLine = parts[1] ? parseStrictPositiveInteger(parts[1]) : undefined;
+      const endLine = parts[2] ? parseStrictPositiveInteger(parts[2]) : undefined;
+
+      if (parts[1] && startLine === undefined) {
+        ctx.ui.notify("Invalid start line. Use positive integers only.", "warning");
+        return;
+      }
+      if (parts[2] && endLine === undefined) {
+        ctx.ui.notify("Invalid end line. Use positive integers only.", "warning");
+        return;
+      }
 
       try {
         const result = await runMemoryGet(path, {
@@ -271,7 +285,7 @@ export default function (pi: ExtensionAPI) {
     promptSnippet: "localgpt_memory_search: recall cross-session notes from LocalGPT workspace memory",
     promptGuidelines: [
       "Use for cross-session preferences, assistant context, and long-running project notes stored in LocalGPT.",
-      "Follow with localgpt_memory_get when you need full lines from a search hit (use path plus line_start/line_end).",
+      "Follow with localgpt_memory_get when you need full lines from a search hit (pass path, startLine, and endLine using the hit's line_start/line_end values).",
       "When localgpt-gen is missing or the relay is unreachable, returns status-style setup hints instead of spawning blindly.",
     ],
     parameters: memorySearchParameters,
@@ -320,6 +334,7 @@ export default function (pi: ExtensionAPI) {
           path: result.path,
           slice: result.slice,
           getMode: result.getMode,
+          errorKind: result.errorKind,
           hints: result.hints,
         },
         isError: !result.ok,

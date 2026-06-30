@@ -125,14 +125,15 @@ Vault メモから plan する場合は [`docs/vault-note-plan-layout.md`](../..
 
 | 状況 | Tool |
 |------|------|
-| 過去の設計ログを検索 | `localgpt_design_log_search` |
-| 検索結果の詳細を読む | `localgpt_design_log_get` |
+| 過去の設計ログを検索 | `localgpt_design_log_search` または `localgpt_memory_search` |
+| 検索結果の行範囲を読む | `localgpt_memory_get`（`path` + `startLine`/`endLine`） |
+| 検索結果 ID で詳細を読む | `localgpt_design_log_get` |
 | 長期設計ログとして保存 | `localgpt_design_log_save` |
 | 日次ログに追記 | `localgpt_design_log_log` |
 
 ### Design log 連携フロー
 
-1. 作業開始 → `localgpt_design_log_search` で過去の記録を確認
+1. 作業開始 → `localgpt_design_log_search` または `localgpt_memory_search` で過去の記録を確認。必要なら `localgpt_memory_get` で検索ヒットの行範囲を読む
 2. テーマ・スタイル決定 → `localgpt_design_log_save`
 3. セッション記録 → `localgpt_design_log_log`
 
@@ -144,4 +145,5 @@ Vault メモから plan する場合は [`docs/vault-note-plan-layout.md`](../..
 
 ## コマンド
 
+- `/localgpt:get` — 指定パスの行範囲を読み込み
 - `/localgpt:gen-status` — binary + relay 状態確認

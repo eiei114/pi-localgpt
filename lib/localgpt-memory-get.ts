@@ -17,6 +17,7 @@ export interface MemoryGetOutcome {
   text: string;
   slice?: MemoryGetSlice;
   getMode?: "slice" | "unavailable";
+  errorKind?: "invalid_path" | "empty_result" | "upstream" | "validation" | "unavailable";
   hints?: string[];
 }
 
@@ -74,13 +75,14 @@ function normalizeSlice(raw: unknown, fallbackPath: string): MemoryGetSlice | nu
       : typeof obj.line_start === "number"
         ? obj.line_start
         : 1;
+  const inferredEndLine = startLine + content.split(/\r?\n/).length - 1;
   const endLine = typeof obj.endLine === "number"
     ? obj.endLine
     : typeof obj.end_line === "number"
       ? obj.end_line
       : typeof obj.line_end === "number"
         ? obj.line_end
-        : startLine;
+        : inferredEndLine;
 
   return { path, content, startLine, endLine };
 }
@@ -103,11 +105,12 @@ export function extractMemoryGetSlice(result: unknown, fallbackPath: string): Me
         })
         .filter((text): text is string => typeof text === "string");
 
-      const combined = texts.join("\n").trim();
-      if (!combined) return null;
+      const combined = texts.join("\n");
+      const parseInput = combined.trim();
+      if (!parseInput) return null;
 
       try {
-        return extractMemoryGetSlice(JSON.parse(combined), fallbackPath);
+        return extractMemoryGetSlice(JSON.parse(parseInput), fallbackPath);
       } catch {
         return { path: fallbackPath, content: combined, startLine: 1, endLine: combined.split(/\r?\n/).length };
       }
@@ -115,13 +118,13 @@ export function extractMemoryGetSlice(result: unknown, fallbackPath: string): Me
   }
 
   if (typeof result === "string") {
-    const trimmed = result.trim();
-    if (!trimmed) return null;
+    const parseInput = result.trim();
+    if (!parseInput) return null;
 
     try {
-      return extractMemoryGetSlice(JSON.parse(trimmed), fallbackPath);
+      return extractMemoryGetSlice(JSON.parse(parseInput), fallbackPath);
     } catch {
-      return { path: fallbackPath, content: trimmed, startLine: 1, endLine: trimmed.split(/\r?\n/).length };
+      return { path: fallbackPath, content: result, startLine: 1, endLine: result.split(/\r?\n/).length };
     }
   }
 
@@ -154,12 +157,13 @@ export function formatMemoryGetUnavailable(
 function buildUpstreamArgs(path: string, startLine?: number, endLine?: number): Record<string, unknown> {
   const args: Record<string, unknown> = { path };
   if (startLine !== undefined) {
-    args.start_line = startLine;
-    args.startLine = startLine;
-  }
-  if (endLine !== undefined) {
-    args.end_line = endLine;
-    args.endLine = endLine;
+    args.from = startLine;
+    if (endLine !== undefined) {
+      args.lines = endLine - startLine + 1;
+    }
+  } else if (endLine !== undefined) {
+    args.from = 1;
+    args.lines = endLine;
   }
   return args;
 }
@@ -247,6 +251,7 @@ export async function runMemoryGet(
           "Check that the path came from localgpt_memory_search and stays inside the LocalGPT workspace.",
         ].filter(Boolean).join("\n"),
         getMode: "unavailable",
+        errorKind: "empty_result",
         hints: ["Verify the path from search results and retry with matching line_start/line_end."],
       };
     }
@@ -279,6 +284,7 @@ export async function runMemoryGet(
         `error: ${message}`,
       ].filter(Boolean).join("\n"),
       getMode: "unavailable",
+      errorKind: invalidPath ? "invalid_path" : "upstream",
       hints: [message],
     };
   }
