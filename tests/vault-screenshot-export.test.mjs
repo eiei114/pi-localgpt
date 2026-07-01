@@ -243,6 +243,110 @@ test("prepareVaultScreenshotExport ignores non-string trigger fields", async () 
   assert.equal(resolved, null);
 });
 
+test("resolveVaultScreenshotPath supports custom filename with spaces", () => {
+  const resolved = resolveVaultScreenshotPath({
+    vaultRoot: "/vault",
+    projectSlug: "OSS/pi-localgpt",
+    filename: "my screenshot.png",
+  });
+
+  assert.equal(resolved.filename, "my-screenshot.png");
+  assert.equal(
+    resolved.absolutePath,
+    path.resolve("/vault/4_Project/OSS/pi-localgpt/screenshots/my-screenshot.png"),
+  );
+  // Spaces in filename are sanitized to dashes
+  assert.equal(resolved.vaultRelativePath, "4_Project/OSS/pi-localgpt/screenshots/my-screenshot.png");
+});
+
+test("resolveVaultScreenshotPath assigns default .png extension when filename lacks one", () => {
+  const resolved = resolveVaultScreenshotPath({
+    vaultRoot: "/vault",
+    projectSlug: "OSS/pi-localgpt",
+    filename: "hero-shot",
+  });
+
+  assert.equal(resolved.filename, "hero-shot.png");
+});
+
+test("resolveVaultScreenshotPath preserves non-png extensions in custom filename", () => {
+  const resolved = resolveVaultScreenshotPath({
+    vaultRoot: "/vault",
+    projectSlug: "OSS/pi-localgpt",
+    filename: "hero-shot.jpg",
+  });
+
+  assert.equal(resolved.filename, "hero-shot.jpg");
+});
+
+test("resolveVaultScreenshotPath overwrites same timestamp+world+session", () => {
+  const t = new Date("2026-07-01T12:00:00.000Z");
+  const a = resolveVaultScreenshotPath({
+    vaultRoot: "/vault",
+    projectSlug: "OSS/pi-localgpt",
+    world: "Woods",
+    session: "test-run",
+    now: t,
+  });
+  const b = resolveVaultScreenshotPath({
+    vaultRoot: "/vault",
+    projectSlug: "OSS/pi-localgpt",
+    world: "Woods",
+    session: "test-run",
+    now: t,
+  });
+
+  // Identical params produce identical filename — second export overwrites the first
+  assert.equal(a.filename, b.filename);
+  assert.equal(a.absolutePath, b.absolutePath);
+  // Different session values produce different filenames
+  const c = resolveVaultScreenshotPath({
+    vaultRoot: "/vault",
+    projectSlug: "OSS/pi-localgpt",
+    world: "Woods",
+    session: "test-run-2",
+    now: t,
+  });
+  assert.notEqual(a.filename, c.filename);
+});
+
+test("buildScreenshotFilename handles whitespace-heavy world name via sanitize", () => {
+  const filename = buildScreenshotFilename({
+    world: "  Forest  Demo  ",
+    session: "  pi-session  ",
+    now: new Date("2026-06-28T05:15:30.000Z"),
+  });
+  assert.equal(filename, "2026-06-28T05-15-30-000Z__Forest-Demo__pi-session.png");
+});
+
+test("prepareVaultScreenshotExport returns null when no vault params given", async () => {
+  const result = await prepareVaultScreenshotExport({
+    params: {},
+    resolveConfig: async () => {
+      throw new Error("resolveConfig should not be called");
+    },
+    mkdirFs: { async mkdir() {} },
+  });
+
+  assert.equal(result, null);
+});
+
+test("prepareVaultScreenshotExport returns null when only path param is given (path takes priority)", async () => {
+  const result = await prepareVaultScreenshotExport({
+    params: {
+      path: "/tmp/one-off.png",
+      world: "Lobby",
+    },
+    resolveConfig: async () => {
+      throw new Error("resolveConfig should not be called");
+    },
+    mkdirFs: { async mkdir() {} },
+  });
+
+  // When `path` is a non-empty string, wantsVaultScreenshotExport returns false
+  assert.equal(result, null);
+});
+
 test("genExportScreenshot resolves vault path before MCP export", async () => {
   const { genExportScreenshot } = await import("../lib/gen-tools.ts");
 
