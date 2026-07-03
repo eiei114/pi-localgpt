@@ -1,6 +1,8 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 import path from "node:path";
+import fs from "node:fs";
+import { fileURLToPath } from "node:url";
 
 const {
   DEFAULT_PROMPT_PACKS_SUBDIR,
@@ -424,4 +426,138 @@ test("exportPromptPack surfaces overwrite when replacing", async () => {
 
   assert.match(result.content[0].text, /Replaced existing prompt-pack/);
   assert.equal(result.details.overwritten, true);
+});
+
+const __dirname = path.dirname(fileURLToPath(import.meta.url));
+const DOGFOOD_FIXTURE = fs.readFileSync(
+  path.join(__dirname, "fixtures/prompt-pack-dogfood-forest-demo.md"),
+  "utf8",
+);
+
+test("dogfood fixture matches shapePromptPackContent for OSS/pi-localgpt forest demo", () => {
+  const content = shapePromptPackContent({
+    name: "Forest Demo",
+    description: "A misty forest clearing with a stone altar and scattered fog particles.",
+    style: "nature",
+    tags: ["forest", "altar", "hero-props"],
+    session: "dogfood-dot398",
+    projectSlug: "OSS/pi-localgpt",
+    now: new Date("2026-07-02T10:00:00.000Z"),
+  });
+
+  assert.equal(content, DOGFOOD_FIXTURE);
+});
+
+test("resolveVaultPromptPackPath supports custom filename with spaces", () => {
+  const resolved = resolveVaultPromptPackPath({
+    vaultRoot: "/vault",
+    projectSlug: "OSS/pi-localgpt",
+    filename: "my pack.md",
+    now: NOW,
+  });
+
+  assert.equal(resolved.filename, "my-pack.md");
+  assert.equal(
+    resolved.vaultRelativePath,
+    "4_Project/OSS/pi-localgpt/prompt-packs/my-pack.md",
+  );
+});
+
+test("resolveVaultPromptPackPath assigns default .md extension when filename lacks one", () => {
+  const resolved = resolveVaultPromptPackPath({
+    vaultRoot: "/vault",
+    projectSlug: "OSS/pi-localgpt",
+    filename: "lobby-layout",
+    now: NOW,
+  });
+
+  assert.equal(resolved.filename, "lobby-layout.md");
+});
+
+test("resolveVaultPromptPackPath preserves non-md extensions in custom filename", () => {
+  const resolved = resolveVaultPromptPackPath({
+    vaultRoot: "/vault",
+    projectSlug: "OSS/pi-localgpt",
+    filename: "notes.markdown",
+    now: NOW,
+  });
+
+  assert.equal(resolved.filename, "notes.markdown");
+});
+
+test("resolveVaultPromptPackPath overwrites same timestamp+name+session identity", () => {
+  const t = new Date("2026-07-02T10:00:00.000Z");
+  const a = resolveVaultPromptPackPath({
+    vaultRoot: "/vault",
+    projectSlug: "OSS/pi-localgpt",
+    name: "Forest Demo",
+    session: "dogfood-dot398",
+    now: t,
+  });
+  const b = resolveVaultPromptPackPath({
+    vaultRoot: "/vault",
+    projectSlug: "OSS/pi-localgpt",
+    name: "Forest Demo",
+    session: "dogfood-dot398",
+    now: t,
+  });
+
+  assert.equal(a.filename, b.filename);
+  assert.equal(a.absolutePath, b.absolutePath);
+
+  const c = resolveVaultPromptPackPath({
+    vaultRoot: "/vault",
+    projectSlug: "OSS/pi-localgpt",
+    name: "Forest Demo",
+    session: "dogfood-dot398-v2",
+    now: t,
+  });
+  assert.notEqual(a.filename, c.filename);
+});
+
+test("buildPromptPackFilename handles whitespace-heavy name and session via sanitize", () => {
+  const filename = buildPromptPackFilename({
+    name: "  Forest  Demo  ",
+    session: "  pi-session  ",
+    now: NOW,
+  });
+  assert.equal(filename, "2026-06-28T05-15-30-000Z__Forest-Demo__pi-session.md");
+});
+
+test("prepareVaultPromptPackExport returns null when params are non-triggering types", async () => {
+  const resolved = await prepareVaultPromptPackExport({
+    params: {
+      name: 123,
+      session: false,
+      filename: {},
+      prompt_packs_dir: [],
+    },
+    resolveConfig: async () => {
+      throw new Error("resolveConfig should not be called");
+    },
+    fs: createMemoryFs(),
+    now: NOW,
+  });
+
+  assert.equal(resolved, null);
+});
+
+test("prepareVaultPromptPackExport reports overwritten false for new filename override", async () => {
+  const memfs = createMemoryFs();
+  const resolved = await prepareVaultPromptPackExport({
+    params: {
+      vault_root: "/vault",
+      vault_project: "OSS/pi-localgpt",
+      name: "Forest Demo",
+      description: "First write via filename override.",
+      filename: "forest-demo.md",
+      overwrite: true,
+    },
+    fs: memfs,
+    now: NOW,
+  });
+
+  assert.ok(resolved);
+  assert.equal(resolved.overwritten, false);
+  assert.equal(resolved.wrote, true);
 });
