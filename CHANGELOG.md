@@ -1,5 +1,9 @@
 # Changelog
 
+## Unreleased
+
+- Add Buy Me a Coffee sponsor button to README and native GitHub funding link via `.github/FUNDING.yml`.
+
 All notable changes to this project will be documented in this file.
 
 ## [0.10.0] - 2026-06-30
@@ -129,3 +133,4 @@ All notable changes to this project will be documented in this file.
 
 - Search is keyword-based; upstream hybrid semantic/sqlite-vec ranking is not replicated.
 - **Removed in 0.3.0** — replaced by MCP bridge unified architecture.
+
