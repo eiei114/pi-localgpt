@@ -48,10 +48,12 @@ Important: tags or releases created by `GITHUB_TOKEN` do not reliably fan out in
 
 ## First release checklist
 
-- [ ] `package.json` name is final
-- [ ] `repository.url` points to the real GitHub repository
-- [ ] npm Trusted Publisher is configured
-- [ ] `npm run ci` passes
-- [ ] `npm pack --dry-run` contains only intended files
-- [ ] CHANGELOG.md has the release date
+Completed for the initial public npm release (`pi-localgpt@0.1.0` onward; current npm: `0.10.1` as of 2026-07):
+
+- [x] `package.json` name is final
+- [x] `repository.url` points to the real GitHub repository
+- [x] npm Trusted Publisher is configured
+- [x] `npm run ci` passes
+- [x] `npm pack --dry-run` contains only intended files
+- [x] CHANGELOG.md has the release date
 
