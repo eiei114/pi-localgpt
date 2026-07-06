@@ -11,7 +11,7 @@ Run after `pi -e .` or `pi install npm:pi-localgpt` (or a local package path).
 
 Minimum manual pass before tagging a release:
 
-1. **Status** — `/localgpt:gen-status` or `localgpt_gen_status` reports binary found and relay reachable.
+1. **Status** — `/localgpt:status` or `localgpt_status` reports workspace readiness for the design log (config path, workspace path, DESIGN-LOG.md / today log presence).
 2. **Search** — `localgpt_design_log_search` returns hits for a known phrase in the design log.
 3. **Save** — `localgpt_design_log_save` persists content and returns an entry ID; a follow-up search finds it.
 
