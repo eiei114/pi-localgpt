@@ -50,7 +50,7 @@ pi install npm:pi-localgpt -l
 Pin a specific version when you want reproducible installs:
 
 ```bash
-pi install npm:pi-localgpt@0.6.0
+pi install npm:pi-localgpt@0.10.1
 ```
 
 Or install from GitHub:
@@ -73,6 +73,23 @@ cd pi-localgpt
 npm install
 pi -e .
 ```
+
+### Alternative: raw `.mcp.json`
+
+If you only need the upstream LocalGPT MCP server (without Pi extension tools, skills, or curated wrappers), add this to your Pi `.mcp.json`:
+
+```json
+{
+  "mcpServers": {
+    "localgpt-gen": {
+      "command": "localgpt-gen",
+      "args": ["mcp-server", "--connect"]
+    }
+  }
+}
+```
+
+`localgpt-gen` must still be running interactively (Bevy window open) so the `--connect` relay on port 9878 is available. Prefer `pi install npm:pi-localgpt` when you want the curated tool surface, Agent Skills, and vault workflows documented in this repo.
 
 ## Quick start
 
@@ -211,6 +228,8 @@ npm run ci
 ```
 
 `npm run ci` runs typecheck, tests, and `npm pack --dry-run` (via `pack:check`) so the published tarball matches `package.json` `files`.
+
+Before release, run the manual smoke checks in [`docs/manual-test-checklist.md`](docs/manual-test-checklist.md) (status, design-log search/save, platform notes).
 
 Run the pack check alone:
 

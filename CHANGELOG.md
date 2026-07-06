@@ -3,6 +3,7 @@
 ## Unreleased
 
 - Add Buy Me a Coffee sponsor button to README and native GitHub funding link via `.github/FUNDING.yml`.
+- Document raw `.mcp.json` alternative, release smoke-test gate, and platform notes for manual verification (DOT-278).
 
 All notable changes to this project will be documented in this file.
 

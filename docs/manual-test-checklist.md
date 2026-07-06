@@ -1,6 +1,19 @@
 # Manual test checklist — pi-localgpt
 
-Run after `pi -e .` or `pi install` with a local package path.
+Run after `pi -e .` or `pi install npm:pi-localgpt` (or a local package path).
+
+## Platform notes
+
+- **macOS** — primary manual verification target. Run the smoke checks below with `localgpt-gen` interactive + Pi loaded.
+- **Windows** — supported in principle (`localgpt-gen` Bevy window + Pi on Windows). Expect path and line-ending differences in vault exports; if relay connect fails, confirm `localgpt-gen` is in `PATH` and the Bevy window is open before retrying status/search/save.
+
+## Smoke test (release gate)
+
+Minimum manual pass before tagging a release:
+
+1. **Status** — `/localgpt:status` or `localgpt_status` reports workspace readiness for the design log (config path, workspace path, DESIGN-LOG.md / today log presence).
+2. **Search** — `localgpt_design_log_search` returns hits for a known phrase in the design log.
+3. **Save** — `localgpt_design_log_save` persists content and returns an entry ID; a follow-up search finds it.
 
 ## Prerequisites
 
@@ -57,3 +70,4 @@ Run after `pi -e .` or `pi install` with a local package path.
 
 - [ ] Each tool call spawns a short-lived `localgpt-gen mcp-server --connect` process that exits after the call.
 - [ ] No persistent `localgpt-gen` background process from pi-localgpt (only the interactive Bevy window).
+- [ ] `pi install npm:pi-localgpt` (or `pi -e .` from a clean clone) loads extension tools without extra config beyond prerequisites.
