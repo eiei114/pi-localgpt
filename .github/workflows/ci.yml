@@ -16,6 +16,7 @@ jobs:
         with:
           node-version: 24
           package-manager-cache: false
+      - uses: oven-sh/setup-bun@v2
       - run: npm ci
       - run: npm run ci
       - name: Verify version bump on publishable changes
