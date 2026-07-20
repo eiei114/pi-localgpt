@@ -2,6 +2,10 @@
 
 ## Unreleased
 
+### Changed
+
+- Bump package version to `0.10.2` for the next patch release.
+
 - Add Buy Me a Coffee sponsor button to README and native GitHub funding link via `.github/FUNDING.yml`.
 - Document raw `.mcp.json` alternative, release smoke-test gate, and platform notes for manual verification (DOT-278).
 
