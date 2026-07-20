@@ -1,6 +1,6 @@
 {
   "name": "pi-localgpt",
-  "version": "0.10.1",
+  "version": "0.10.2",
   "description": "Pi extension for LocalGPT — unified MCP bridge. 51 curated tools for design-log + Gen 3D world building.",
   "type": "module",
   "license": "MIT",
