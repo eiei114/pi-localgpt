@@ -24,3 +24,10 @@ test("package.json description matches curated tool count", () => {
     new RegExp(`${curatedCount} curated tools for design-log \\+ Gen 3D world building`),
   );
 });
+
+test("README pin example matches package.json version", () => {
+  assert.match(
+    readme,
+    new RegExp(`pi install npm:pi-localgpt@${pkg.version}`),
+  );
+});
