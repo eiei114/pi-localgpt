@@ -48,7 +48,7 @@ Important: tags or releases created by `GITHUB_TOKEN` do not reliably fan out in
 
 ## First release checklist
 
-Completed for the initial public npm release (`pi-localgpt@0.1.0` onward; current npm: `0.10.1` as of 2026-07):
+Completed for the initial public npm release (`pi-localgpt@0.1.0` onward; current npm: `0.10.2` as of 2026-07):
 
 - [x] `package.json` name is final
 - [x] `repository.url` points to the real GitHub repository
