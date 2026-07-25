@@ -5,6 +5,7 @@ import { loadCuratedToolCount } from "../scripts/count-curated-tools.mjs";
 
 const pkg = JSON.parse(readFileSync("package.json", "utf8"));
 const readme = readFileSync("README.md", "utf8");
+const localgptGenSkill = readFileSync("skills/localgpt-gen/SKILL.md", "utf8");
 const curatedCount = loadCuratedToolCount();
 
 test("curated tool count uses the genToolMeta canonical definition", () => {
@@ -29,5 +30,12 @@ test("README pin example matches package.json version", () => {
   assert.match(
     readme,
     new RegExp(`pi install npm:pi-localgpt@${pkg.version}`),
+  );
+});
+
+test("localgpt-gen skill curated tool count matches canonical definition", () => {
+  assert.match(
+    localgptGenSkill,
+    new RegExp(`${curatedCount} tool`),
   );
 });
