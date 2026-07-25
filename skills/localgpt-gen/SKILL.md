@@ -141,7 +141,7 @@ Vault メモから plan する場合は [`docs/vault-note-plan-layout.md`](../..
 
 - **1 call = 1 spawn** — 各 tool call で短寿命プロセスが起動・終了
 - **リレー必須** — localgpt-gen が起動していないと全ツールが失敗
-- **全ツール curated** — 50 tool をカバー。不足時は `localgpt_gen_call` で任意呼び出し
+- **全ツール curated** — 51 tool をカバー。不足時は `localgpt_gen_call` で任意呼び出し
 
 ## コマンド
 
