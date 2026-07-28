@@ -75,7 +75,7 @@ description: LocalGPT 設計ログ／メモリを Pi から操作。cross-sessio
 | `localgpt_design_log_log` | `localgpt_memory_log` | 後方互換あり（将来削除予定） |
 | `localgpt_design_log_search` | `localgpt_memory_search` | 後方互換あり |
 
-> `localgpt_memory_search` と `localgpt_memory_get` は独自のファイルシステム フォールバック実装を持ち、binary なしでも keyword 検索・行範囲読み取りが可能な独立ツールとして設計されている。
+> `localgpt_memory_search` / `localgpt_memory_get` / `localgpt_design_log_*` はいずれも upstream `memory_*` MCP ツール経由。binary や relay が無い場合は `localgpt_status` / `localgpt_gen_status` のセットアップヒントを返す（ローカル filesystem フォールバックは提供しない）。
 
 ## コマンド一覧（MVP）
 

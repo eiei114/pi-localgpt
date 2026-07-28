@@ -35,7 +35,7 @@ not a target for future work.
 - **`v0.4.1`** — Removed stale memory wording from README.
 - **`v0.4.2`** — Renamed "memory" → "design log" user-facing wording; added
   backward-compatible `localgpt_memory_*` aliases; added local workspace helper
-  libraries (`localgpt-config.ts`, `localgpt-workspace.ts`, `design-log-*.ts`).
+  libraries (`localgpt-config.ts`, `localgpt-workspace.ts`).
 
 ---
 
@@ -45,8 +45,7 @@ These themes guide which seeds to promote each week. They are deliberately
 **post-pivot**: every item assumes the unified MCP bridge is the architecture.
 
 - **Theme A — Finish the design-log rename.** The `v0.4.2` rename left behind
-  legacy aliases (no removal date) and a set of local libraries that are not
-  wired to any tool. Close that loop.
+  legacy aliases (no removal date). Close that loop.
 - **Theme B — Robustness of the 1-shot bridge.** The client works but is thin
   on diagnostics (no stderr capture, hard-coded timeout) and on failure-path
   test coverage. These are the modes users actually hit.
@@ -70,23 +69,16 @@ Each seed is bounded to **30–90 minutes** and written so the weekly planner ca
 promote it directly into an issue. Format: **What / Why / Acceptance / Theme /
 Estimate**.
 
-### 🌱 Seed 1 — Decide the fate of the unwired local design-log libraries
+### ✅ Seed 1 — Decide the fate of the unwired local design-log libraries (DOT-1240)
 
-- **What:** `lib/design-log-read.ts`, `lib/design-log-search.ts`, and
-  `lib/design-log-write.ts` were added in `v0.4.2` and are covered by
-  `tests/design-log-libraries.test.mjs`, but **no tool imports them**. Every
-  `localgpt_design_log_*` tool routes through the MCP bridge
-  (`memory_search`/`_get`/`_save`/`_log`) instead. Pick one and implement it:
-  (a) wire the libraries as an **offline fallback** so design-log search/save
-  works when `localgpt-gen` is not running, (b) **remove** them as dead code
-  (plus their tests), or (c) **document** them as a reference/testing utility
-  only.
-- **Why:** ~250 lines of lib + 213 lines of tests sit unused by production
-  tools, which obscures the real data path and misleads future maintainers.
-- **Acceptance:** A documented decision (ROADMAP/README note). If wired: an
-  integration test proving offline search works without the binary. If removed:
-  files and their tests deleted, smoke test still passes.
-- **Theme:** A · **Estimate:** 45–75 min
+- **Decision (2026-07-28):** **Remove** the unused `lib/design-log-*.ts`
+  modules. All `localgpt_design_log_*` tools stay on the unified 1-shot MCP
+  bridge (`memory_search`/`_get`/`_save`/`_log`). Offline filesystem fallback
+  is out of scope — it would reintroduce the pre-`v0.3.0` direct-access path
+  this project intentionally removed.
+- **Kept:** `localgpt-config.ts` and `localgpt-workspace.ts` (used by
+  `localgpt_status`, vault exports, and path guards).
+- **PR:** DOT-1240
 
 ### 🌱 Seed 2 — Reconcile the "50 curated tools" count
 
@@ -169,8 +161,8 @@ Estimate**.
   confirm the Japanese-only choice is intentional. *(Theme C, ~30–45 min —
   confirm intent before doing.)*
 - 🌱 **Offline design-log `localgpt_gen_status` hint.** When the bridge is
-  unreachable, `gen-status` could point users at whether the local design-log
-  fallback (see Seed 1) is available. Depends on Seed 1's decision.
+  unreachable, `gen-status` could point users at setup steps for the MCP bridge.
+  *(Depends on localgpt-gen relay; no local filesystem fallback planned.)*
 - 🌱 **Examples directory.** Add `examples/` with one end-to-end WorldGen
   pipeline transcript (plan → blockout → populate → evaluate → refine) to help
   new users. *(Theme C, ~45–60 min.)*

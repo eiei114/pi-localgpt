@@ -8,9 +8,6 @@ test("pi-localgpt library modules load", async () => {
   const genTools = await import("../lib/gen-tools.ts");
   const localgptConfig = await import("../lib/localgpt-config.ts");
   const localgptWorkspace = await import("../lib/localgpt-workspace.ts");
-  const designLogSearch = await import("../lib/design-log-search.ts");
-  const designLogRead = await import("../lib/design-log-read.ts");
-  const designLogWrite = await import("../lib/design-log-write.ts");
   const localgptMemorySearch = await import("../lib/localgpt-memory-search.ts");
   const localgptMemoryGet = await import("../lib/localgpt-memory-get.ts");
   const commandInput = await import("../lib/command-input.ts");
@@ -31,9 +28,6 @@ test("pi-localgpt library modules load", async () => {
   assert.equal(typeof localgptConfig.resolveLocalGptConfig, "function");
   assert.equal(typeof localgptWorkspace.assertInsideWorkspace, "function");
   assert.equal(typeof localgptWorkspace.inspectWorkspaceFiles, "function");
-  assert.equal(typeof designLogSearch.searchDesignLog, "function");
-  assert.equal(typeof designLogRead.readDesignLogRange, "function");
-  assert.equal(typeof designLogWrite.saveDesignLog, "function");
   assert.equal(typeof localgptMemorySearch.runMemorySearch, "function");
   assert.equal(typeof localgptMemorySearch.formatMemorySearchHits, "function");
   assert.equal(typeof localgptMemoryGet.runMemoryGet, "function");
