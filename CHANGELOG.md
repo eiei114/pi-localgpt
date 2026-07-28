@@ -6,7 +6,8 @@
 
 - Remove unused `lib/design-log-{read,search,write}.ts` modules (DOT-1240). All design-log tools remain on the unified 1-shot MCP bridge; workspace helpers (`localgpt-config.ts`, `localgpt-workspace.ts`) are unchanged.
 
-- Bump package version to `0.10.2` for the next patch release.
+- Include short, sanitized `localgpt-gen` stderr excerpts in failed MCP bridge calls so relay, protocol, binary, or missing-window errors are easier to diagnose (DOT-1245).
+- Bump package version to `0.10.3` for the next patch release.
 
 - Add Buy Me a Coffee sponsor button to README and native GitHub funding link via `.github/FUNDING.yml`.
 - Document raw `.mcp.json` alternative, release smoke-test gate, and platform notes for manual verification (DOT-278).

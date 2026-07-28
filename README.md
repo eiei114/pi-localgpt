@@ -50,7 +50,7 @@ pi install npm:pi-localgpt -l
 Pin a specific version when you want reproducible installs:
 
 ```bash
-pi install npm:pi-localgpt@0.10.2
+pi install npm:pi-localgpt@0.10.3
 ```
 
 Or install from GitHub:
@@ -89,7 +89,7 @@ If you only need the upstream LocalGPT MCP server (without Pi extension tools, s
 }
 ```
 
-`localgpt-gen` must still be running interactively (Bevy window open) so the `--connect` relay on port 9878 is available. Prefer `pi install npm:pi-localgpt` when you want the curated tool surface, Agent Skills, and vault workflows documented in this repo.
+`localgpt-gen` must still be running interactively (Bevy window open) so the `--connect` relay on port 9878 is available. Bridge failures may include a short, sanitized `localgpt-gen` stderr excerpt to help identify relay, protocol, binary, or missing-window causes. Prefer `pi install npm:pi-localgpt` when you want the curated tool surface, Agent Skills, and vault workflows documented in this repo.
 
 ## Quick start
 

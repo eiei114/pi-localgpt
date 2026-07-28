@@ -21,7 +21,7 @@ const {
 
 import { Readable } from "node:stream";
 
-function createMockSpawn(responses) {
+function createMockSpawn(responses, options = {}) {
   let callCount = 0;
 
   return {
@@ -52,7 +52,10 @@ function createMockSpawn(responses) {
             const response = responses.get(key) ?? responses.get(msg.method);
             if (response !== undefined) {
               setTimeout(() => {
-                pushLine(JSON.stringify({ jsonrpc: "2.0", id: msg.id, result: response }));
+                const payload = response?.error
+                  ? { jsonrpc: "2.0", id: msg.id, error: response.error }
+                  : { jsonrpc: "2.0", id: msg.id, result: response };
+                pushLine(JSON.stringify(payload));
               }, 10);
             }
           } catch { /* ignore */ }
@@ -61,12 +64,16 @@ function createMockSpawn(responses) {
         end: () => {},
       };
 
-      emitter.pid = 12345;
+      emitter.pid = options.pid ?? 12345;
       emitter.killed = false;
       emitter.stdout = stdout;
       emitter.stdin = stdin;
       emitter.stderr = new EventEmitter();
       emitter.kill = () => { emitter.killed = true; };
+
+      for (const chunk of options.stderrChunks ?? []) {
+        setTimeout(() => emitter.stderr.emit("data", chunk), 0);
+      }
 
       return emitter;
     },
@@ -134,6 +141,74 @@ test("genListTools spawns 1-shot process and returns tools", async () => {
   assert.equal(tools.length, 2);
   assert.equal(tools[0]?.name, "gen_screenshot");
   assert.equal(mock.callCount, 1);
+});
+
+test("MCP initialize error includes sanitized bounded stderr excerpt", async () => {
+  const noisyLines = Array.from({ length: 30 }, (_, i) => `line-${i.toString().padStart(2, "0")}-` + "x".repeat(90));
+  const responses = new Map([
+    ["initialize", { error: { code: -32603, message: "relay refused" } }],
+  ]);
+  const mock = createMockSpawn(responses, {
+    stderrChunks: [`\u001b[31m${noisyLines.join("\n")}\u001b[0m\u0007`],
+  });
+
+  await assert.rejects(
+    genListTools({ spawnFn: mock.spawnFn, timeoutMs: 5000 }),
+    (err) => {
+      assert.match(err.message, /MCP initialize error: relay refused/);
+      assert.match(err.message, /stderr:/);
+      assert.match(err.message, /line-29/);
+      assert.doesNotMatch(err.message, /line-00/);
+      assert.doesNotMatch(err.message, /\u001b|\u0007/);
+      assert.ok(err.message.length < 2_200);
+      return true;
+    },
+  );
+});
+
+test("tools/list error includes stderr excerpt", async () => {
+  const responses = new Map([
+    ["initialize", { protocolVersion: "2024-11-05" }],
+    ["tools/list", { error: { code: -32000, message: "relay unavailable" } }],
+  ]);
+  const mock = createMockSpawn(responses, {
+    stderrChunks: ["connect ECONNREFUSED 127.0.0.1:9878\nstart localgpt-gen first"],
+  });
+
+  await assert.rejects(
+    genListTools({ spawnFn: mock.spawnFn, timeoutMs: 5000 }),
+    /MCP tools\/list error \(-32000\): relay unavailable; stderr: connect ECONNREFUSED 127\.0\.0\.1:9878 \| start localgpt-gen first/,
+  );
+});
+
+test("tools/call timeout includes stderr emitted before timeout", async () => {
+  const responses = new Map([
+    ["initialize", { protocolVersion: "2024-11-05" }],
+  ]);
+  const mock = createMockSpawn(responses, {
+    stderrChunks: ["waiting for Bevy window relay"],
+  });
+
+  await assert.rejects(
+    genCallTool("gen_screenshot", {}, { spawnFn: mock.spawnFn, timeoutMs: 150 }),
+    /Timed out waiting for MCP response id=2 \(150ms\); stderr: waiting for Bevy window relay/,
+  );
+});
+
+test("empty-stderr failures do not add stderr label", async () => {
+  const responses = new Map([
+    ["initialize", { error: { code: -32603, message: "bad protocol" } }],
+  ]);
+  const mock = createMockSpawn(responses);
+
+  await assert.rejects(
+    genListTools({ spawnFn: mock.spawnFn, timeoutMs: 5000 }),
+    (err) => {
+      assert.equal(err.message, "MCP initialize error: bad protocol");
+      assert.doesNotMatch(err.message, /stderr:/);
+      return true;
+    },
+  );
 });
 
 test("formatGenStatus formats binary-not-found status", () => {
