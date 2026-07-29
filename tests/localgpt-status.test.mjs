@@ -4,7 +4,7 @@ import path from "node:path";
 
 const { inspectLocalGptStatus, formatLocalGptStatus, statusNotificationLevel } = await import("../lib/localgpt-status.ts");
 const { inspectWorkspaceFiles, assertInsideWorkspace, dailyLogPath, designLogFilePath, workspacePath } = await import("../lib/localgpt-workspace.ts");
-const { resolveLocalGptConfig } = await import("../lib/localgpt-config.ts");
+const { parseDesignLogWorkspaceFromToml, resolveLocalGptConfig } = await import("../lib/localgpt-config.ts");
 
 function enoent(filePath) {
   const error = new Error(`ENOENT: ${filePath}`);
@@ -64,17 +64,23 @@ workspace = "../workspace" # relative to config file
 });
 
 test("resolveLocalGptConfig preserves escaped backslashes in double-quoted workspace strings", async () => {
-  const configPath = path.resolve("/tmp/localgpt-config/config.toml");
-  const fs = new MemFs({
-    [configPath]: String.raw`
+  const toml = String.raw`
 [design-log]
 workspace = "C:\\Users\\name"
-`,
-  });
+`;
+  const windowsWorkspace = parseDesignLogWorkspaceFromToml(toml);
 
-  const config = await resolveLocalGptConfig({ configPath, cwd: "/ignored", fs, env: {} });
+  assert.equal(windowsWorkspace, String.raw`C:\Users\name`);
+  assert.equal(path.win32.isAbsolute(windowsWorkspace), true);
+  assert.equal(path.win32.resolve(windowsWorkspace), String.raw`C:\Users\name`);
 
-  assert.equal(config.workspace, path.resolve("/tmp/localgpt-config", "C:\\Users\\name"));
+  if (process.platform !== "win32") return;
+
+  const configPath = path.win32.join("C:", "localgpt-config", "config.toml");
+  const fs = new MemFs({ [configPath]: toml });
+  const config = await resolveLocalGptConfig({ configPath, cwd: "C:\\ignored", fs, env: {} });
+
+  assert.equal(config.workspace, path.win32.resolve(windowsWorkspace));
 });
 
 test("resolveLocalGptConfig falls back to XDG default workspace", async () => {
