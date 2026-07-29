@@ -1,5 +1,6 @@
 import { spawn, type ChildProcess } from "node:child_process";
 import { createInterface } from "node:readline";
+import { StringDecoder } from "node:string_decoder";
 
 // ── Types ───────────────────────────────────────────────────────────
 
@@ -29,6 +30,33 @@ export interface GenCallOptions {
 const DEFAULT_COMMAND = "localgpt-gen";
 const DEFAULT_CONNECT_ARGS = ["mcp-server", "--connect"];
 const DEFAULT_TIMEOUT_MS = 30_000;
+const STDERR_MAX_CHARS = 2_000;
+const STDERR_MAX_LINES = 20;
+const ANSI_ESCAPE_PATTERN = /\u001b(?:\[[0-?]*[ -/]*[@-~]|\][^\u0007]*(?:\u0007|\u001b\\)|[@-Z\\-_])/g;
+const CONTROL_CHAR_PATTERN = /[\u0000-\u0008\u000b\u000c\u000e-\u001f\u007f-\u009f]/g;
+
+function sanitizeStderrText(text: string): string {
+  return text
+    .replace(ANSI_ESCAPE_PATTERN, "")
+    .replace(CONTROL_CHAR_PATTERN, " ")
+    .replace(/\r\n?/g, "\n");
+}
+
+function trimStderrTail(text: string): string {
+  return text.length > STDERR_MAX_CHARS ? text.slice(-STDERR_MAX_CHARS) : text;
+}
+
+function formatStderrExcerpt(text: string): string | undefined {
+  const lines = sanitizeStderrText(text)
+    .split("\n")
+    .map((line) => line.trim())
+    .filter(Boolean)
+    .slice(-STDERR_MAX_LINES);
+  if (lines.length === 0) return undefined;
+
+  const excerpt = trimStderrTail(lines.join(" | "));
+  return excerpt.trim() || undefined;
+}
 
 // ── 1-shot MCP call ─────────────────────────────────────────────────
 
@@ -54,6 +82,18 @@ async function genMcpOneShot(
 
   let nextId = 1;
   const lineBuffer: string[] = [];
+  let stderrTail = "";
+  const stderrDecoder = new StringDecoder("utf8");
+
+  function appendStderrText(text: string): void {
+    stderrTail = trimStderrTail(stderrTail + sanitizeStderrText(text));
+  }
+
+  const onStderrData = (chunk: Buffer | string): void => {
+    appendStderrText(typeof chunk === "string" ? chunk : stderrDecoder.write(chunk));
+  };
+
+  proc.stderr?.on("data", onStderrData);
 
   const rl = createInterface({ input: proc.stdout! });
   rl.on("line", (line: string) => {
@@ -72,18 +112,37 @@ async function genMcpOneShot(
 
   function waitForResponse(targetId: number, ms: number): Promise<JsonRpcResponse> {
     return new Promise((resolve, reject) => {
+      let settled = false;
+      let pollTimer: NodeJS.Timeout | undefined;
+
       const deadline = setTimeout(() => {
-        reject(new Error(`Timed out waiting for MCP response id=${targetId} (${ms}ms)`));
+        finishReject(new Error(`Timed out waiting for MCP response id=${targetId} (${ms}ms)`));
       }, ms);
 
+      const finishResolve = (value: JsonRpcResponse) => {
+        if (settled) return;
+        settled = true;
+        clearTimeout(deadline);
+        if (pollTimer) clearTimeout(pollTimer);
+        resolve(value);
+      };
+
+      const finishReject = (err: Error) => {
+        if (settled) return;
+        settled = true;
+        clearTimeout(deadline);
+        if (pollTimer) clearTimeout(pollTimer);
+        reject(err);
+      };
+
       const poll = () => {
+        if (settled) return;
         for (let i = lineBuffer.length - 1; i >= 0; i--) {
           try {
             const msg = JSON.parse(lineBuffer[i]!) as JsonRpcResponse;
             if (msg.id === targetId) {
               lineBuffer.splice(i, 1);
-              clearTimeout(deadline);
-              resolve(msg);
+              finishResolve(msg);
               return;
             }
           } catch {
@@ -91,15 +150,25 @@ async function genMcpOneShot(
           }
         }
         // Retry after short delay
-        setTimeout(poll, 50);
+        pollTimer = setTimeout(poll, 50);
       };
 
       poll();
     });
   }
 
+  function errorWithStderr(message: string): Error {
+    appendStderrText(stderrDecoder.end());
+    const stderrExcerpt = formatStderrExcerpt(stderrTail);
+    return new Error(stderrExcerpt ? `${message}; stderr: ${stderrExcerpt}` : message);
+  }
+
+  let onAbort: (() => void) | undefined;
+
   function cleanup() {
+    proc.stderr?.removeListener("data", onStderrData);
     rl.close();
+    if (signal && onAbort) signal.removeEventListener("abort", onAbort);
     if (!proc.killed) {
       try { proc.stdin!.end(); } catch { /* already closed */ }
       proc.kill();
@@ -107,7 +176,7 @@ async function genMcpOneShot(
   }
 
   if (signal) {
-    const onAbort = () => cleanup();
+    onAbort = () => cleanup();
     signal.addEventListener("abort", onAbort, { once: true });
   }
 
@@ -144,6 +213,9 @@ async function genMcpOneShot(
     }
 
     return resp.result;
+  } catch (err) {
+    const message = err instanceof Error ? err.message : String(err);
+    throw errorWithStderr(message);
   } finally {
     cleanup();
   }
