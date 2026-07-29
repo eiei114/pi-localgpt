@@ -110,6 +110,8 @@ async function genMcpOneShot(
     proc.stdin!.write(JSON.stringify({ jsonrpc: "2.0", method: m, params: p }) + "\n");
   }
 
+  let activeWaitReject: ((err: Error) => void) | undefined;
+
   function waitForResponse(targetId: number, ms: number): Promise<JsonRpcResponse> {
     return new Promise((resolve, reject) => {
       let settled = false;
@@ -124,6 +126,7 @@ async function genMcpOneShot(
         settled = true;
         clearTimeout(deadline);
         if (pollTimer) clearTimeout(pollTimer);
+        activeWaitReject = undefined;
         resolve(value);
       };
 
@@ -132,8 +135,11 @@ async function genMcpOneShot(
         settled = true;
         clearTimeout(deadline);
         if (pollTimer) clearTimeout(pollTimer);
+        activeWaitReject = undefined;
         reject(err);
       };
+
+      activeWaitReject = finishReject;
 
       const poll = () => {
         if (settled) return;
@@ -157,10 +163,10 @@ async function genMcpOneShot(
     });
   }
 
-  function errorWithStderr(message: string): Error {
+  function errorWithStderr(message: string, cause?: unknown): Error {
     appendStderrText(stderrDecoder.end());
     const stderrExcerpt = formatStderrExcerpt(stderrTail);
-    return new Error(stderrExcerpt ? `${message}; stderr: ${stderrExcerpt}` : message);
+    return new Error(stderrExcerpt ? `${message}; stderr: ${stderrExcerpt}` : message, { cause });
   }
 
   let onAbort: (() => void) | undefined;
@@ -176,7 +182,10 @@ async function genMcpOneShot(
   }
 
   if (signal) {
-    onAbort = () => cleanup();
+    onAbort = () => {
+      activeWaitReject?.(new Error("Aborted"));
+      cleanup();
+    };
     signal.addEventListener("abort", onAbort, { once: true });
   }
 
@@ -215,7 +224,7 @@ async function genMcpOneShot(
     return resp.result;
   } catch (err) {
     const message = err instanceof Error ? err.message : String(err);
-    throw errorWithStderr(message);
+    throw errorWithStderr(message, err);
   } finally {
     cleanup();
   }

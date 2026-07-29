@@ -211,6 +211,21 @@ test("empty-stderr failures do not add stderr label", async () => {
   );
 });
 
+test("stderr excerpt decodes multi-byte UTF-8 split across Buffer chunks", async () => {
+  const text = Buffer.from("caf\u00e9 crash");
+  const responses = new Map([
+    ["initialize", { error: { code: -32603, message: "bad protocol" } }],
+  ]);
+  const mock = createMockSpawn(responses, {
+    stderrChunks: [text.subarray(0, 4), text.subarray(4)],
+  });
+
+  await assert.rejects(
+    genListTools({ spawnFn: mock.spawnFn, timeoutMs: 5000 }),
+    /stderr: caf\u00e9 crash/,
+  );
+});
+
 test("formatGenStatus formats binary-not-found status", () => {
   const text = formatGenStatus({
     ok: false,
