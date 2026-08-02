@@ -16,13 +16,13 @@ not a target for future work.
 
 | Area | Status |
 |---|---|
-| Latest release | **`v0.4.2`** (npm Trusted Publishing, tag `v0.4.2`) |
+| Latest release | **`v0.10.3`** (`package.json`; npm tag pending until publish workflow runs) |
 | Architecture | Unified **1-shot MCP bridge** — each tool spawns `localgpt-gen mcp-server --connect`, sends one request, exits. No persistent process. |
-| Tool surface | `localgpt_gen_status` + `localgpt_gen_call` (generic) + **49 unique curated wrappers** + 4 backward-compatible `localgpt_memory_*` legacy aliases |
-| Design log | 4 `localgpt_design_log_*` tools, all routed through the bridge (`memory_search`/`_get`/`_save`/`_log`) |
-| Code health | `npm run typecheck` clean; **51 tests pass** (`node:test`); strict TypeScript (`ES2022`, `NodeNext`) |
-| CI/Release | Node 24 on `ci.yml` + `publish.yml`; auto-release + Trusted Publishing (no `NPM_TOKEN`) |
-| Skills | `skills/localgpt-gen/SKILL.md` (workflow guide) |
+| Tool surface | **51 curated gen wrappers** (canonical `genToolMeta` count; excludes `localgpt_design_log_*` and legacy `localgpt_memory_save`/`localgpt_memory_log`) + `localgpt_gen_call` + design-log / vault / worldgen helpers |
+| Design log | 4 `localgpt_design_log_*` tools on the bridge (`memory_search`/`_get`/`_save`/`_log`); `localgpt_memory_search`/`_get` read aliases; `localgpt_memory_save`/`_log` write aliases |
+| Code health | `npm run typecheck` clean; **194 `node:test` cases** pass; strict TypeScript (`ES2022`, `NodeNext`) |
+| CI/Release | Node 24 on `ci.yml` + `publish.yml` (`actions/checkout@v7`, `setup-node@v6`); auto-release + Trusted Publishing (no `NPM_TOKEN`) |
+| Skills | `skills/localgpt-gen/SKILL.md` + `skills/localgpt-memory/SKILL.md` |
 
 ### Release history (architecture-relevant)
 
@@ -80,19 +80,11 @@ Estimate**.
   `localgpt_status`, vault exports, and path guards).
 - **PR:** DOT-1240
 
-### 🌱 Seed 2 — Reconcile the "50 curated tools" count
+### ✅ Seed 2 — Reconcile the curated tools count (DOT-941 / DOT-1197)
 
-- **What:** The README headline and `package.json` description claim
-  "50 curated tools". The actual count is **49 unique curated wrappers**
-  (or 53 incl. the 4 legacy `localgpt_memory_*` aliases; or 51 total incl.
-  `localgpt_gen_status` + `localgpt_gen_call`). Choose one canonical
-  definition and make README, `package.json` description, and the tools table
-  agree.
-- **Why:** Inaccurate counts erode trust and hide tool-coverage gaps.
-- **Acceptance:** One authoritative count statement; numbers match across
-  `README.md`, `package.json` `description`, and the tools section. Optionally
-  add a tiny `scripts/` check that counts registered tools.
-- **Theme:** C · **Estimate:** 20–40 min
+- **Done:** Canonical count is **51 curated gen wrappers** (`scripts/count-curated-tools.mjs` +
+  `npm run metadata:check`). README, `package.json`, `skills/localgpt-gen/SKILL.md`, and
+  `tests/package-metadata.test.mjs` enforce the same number.
 
 ### 🌱 Seed 3 — Set a deprecation timeline for `localgpt_memory_*` aliases
 
@@ -106,17 +98,10 @@ Estimate**.
   version recorded in this ROADMAP; optional runtime hint with a test.
 - **Theme:** A · **Estimate:** 30–60 min
 
-### 🌱 Seed 4 — Capture stderr in the 1-shot MCP client
+### ✅ Seed 4 — Capture stderr in the 1-shot MCP client (DOT-1245)
 
-- **What:** `lib/gen-mcp-client.ts` opens `stdio: ["pipe","pipe","pipe"]` but
-  **never reads `stderr`**. On spawn failure or MCP error the user sees only a
-  generic message. Buffer stderr and append a trimmed excerpt to thrown errors.
-- **Why:** `localgpt-gen` failures are hard to debug today; stderr usually
-  carries the real cause (e.g., "relay port 9878 in use", protocol mismatch,
-  missing Bevy window).
-- **Acceptance:** Error path includes a stderr excerpt when stderr is non-empty;
-  a new test exercises a mock child that writes to stderr then errors.
-- **Theme:** B · **Estimate:** 45–75 min
+- **Done:** Failed bridge calls append a sanitized stderr excerpt; regression tests in
+  `tests/gen-tools.test.mjs` cover initialize, tools/list, timeout, and empty-stderr paths.
 
 ### 🌱 Seed 5 — Make the 1-shot client timeout configurable per tool
 
@@ -131,16 +116,10 @@ Estimate**.
   forward a timeout; a test proves the override is respected end-to-end.
 - **Theme:** B · **Estimate:** 30–60 min
 
-### 🌱 Seed 6 — Add failure-path tests for the 1-shot client
+### ✅ Seed 6 — Add failure-path tests for the 1-shot client (DOT-1245)
 
-- **What:** `tests/gen-tools.test.mjs` mocks the happy path but the client's
-  **abort** and **timeout** branches in `waitForResponse`/`cleanup` have no
-  direct coverage. Add focused tests: abort mid-handshake, timeout expiry, and
-  MCP error response.
-- **Why:** These are the failure modes users hit; they are currently untested.
-- **Acceptance:** New tests added and passing; abort, timeout, and MCP-error
-  paths each covered.
-- **Theme:** B · **Estimate:** 30–60 min
+- **Done:** `tests/gen-tools.test.mjs` covers MCP initialize errors, tools/list errors,
+  tools/call timeout (with pre-timeout stderr), and empty-stderr failures.
 
 ### 🌱 Seed 7 — Triage transitive dependency advisories
 

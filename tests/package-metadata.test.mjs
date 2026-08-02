@@ -5,8 +5,12 @@ import { loadCuratedToolCount } from "../scripts/count-curated-tools.mjs";
 
 const pkg = JSON.parse(readFileSync("package.json", "utf8"));
 const readme = readFileSync("README.md", "utf8");
+const roadmap = readFileSync("ROADMAP.md", "utf8");
 const localgptGenSkill = readFileSync("skills/localgpt-gen/SKILL.md", "utf8");
 const curatedCount = loadCuratedToolCount();
+
+const escapeRegExp = (value) =>
+  value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 
 test("curated tool count uses the genToolMeta canonical definition", () => {
   assert.ok(curatedCount > 0, "expected at least one curated tool");
@@ -37,5 +41,25 @@ test("localgpt-gen skill curated tool count matches canonical definition", () =>
   assert.match(
     localgptGenSkill,
     new RegExp(`${curatedCount} tool`),
+  );
+});
+
+test("ROADMAP current state matches package.json version", () => {
+  assert.match(
+    roadmap,
+    new RegExp(
+      `^\\| Latest release \\| \\*\\*\\x60v${escapeRegExp(pkg.version)}\\x60\\*\\*`,
+      "m",
+    ),
+  );
+});
+
+test("ROADMAP current state matches curated tool count", () => {
+  assert.match(
+    roadmap,
+    new RegExp(
+      `^\\| Tool surface \\| \\*\\*${curatedCount} curated gen wrappers\\b`,
+      "m",
+    ),
   );
 });
