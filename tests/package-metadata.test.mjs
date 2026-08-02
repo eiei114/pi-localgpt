@@ -5,6 +5,7 @@ import { loadCuratedToolCount } from "../scripts/count-curated-tools.mjs";
 
 const pkg = JSON.parse(readFileSync("package.json", "utf8"));
 const readme = readFileSync("README.md", "utf8");
+const roadmap = readFileSync("ROADMAP.md", "utf8");
 const localgptGenSkill = readFileSync("skills/localgpt-gen/SKILL.md", "utf8");
 const curatedCount = loadCuratedToolCount();
 
@@ -38,4 +39,12 @@ test("localgpt-gen skill curated tool count matches canonical definition", () =>
     localgptGenSkill,
     new RegExp(`${curatedCount} tool`),
   );
+});
+
+test("ROADMAP current state matches package.json version", () => {
+  assert.match(roadmap, new RegExp(`v${pkg.version.replaceAll(".", "\\.")}`));
+});
+
+test("ROADMAP current state matches curated tool count", () => {
+  assert.match(roadmap, new RegExp(`${curatedCount} curated`));
 });
