@@ -14,6 +14,12 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.10.4] - 2026-08-04
+
+### Changed
+
+- Bump package version for the Discord release webhook verification.
+
 ## [0.10.0] - 2026-06-30
 
 ### Added
