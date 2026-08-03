@@ -16,7 +16,7 @@ not a target for future work.
 
 | Area | Status |
 |---|---|
-| Latest release | **`v0.10.3`** (`package.json`; npm tag pending until publish workflow runs) |
+| Latest release | **`v0.10.4`** (`package.json`; npm tag pending until publish workflow runs) |
 | Architecture | Unified **1-shot MCP bridge** — each tool spawns `localgpt-gen mcp-server --connect`, sends one request, exits. No persistent process. |
 | Tool surface | **51 curated gen wrappers** (canonical `genToolMeta` count; excludes `localgpt_design_log_*` and legacy `localgpt_memory_save`/`localgpt_memory_log`) + `localgpt_gen_call` + design-log / vault / worldgen helpers |
 | Design log | 4 `localgpt_design_log_*` tools on the bridge (`memory_search`/`_get`/`_save`/`_log`); `localgpt_memory_search`/`_get` read aliases; `localgpt_memory_save`/`_log` write aliases |
