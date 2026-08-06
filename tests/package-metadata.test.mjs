@@ -12,7 +12,13 @@ const localgptGenSkill = readFileSync("skills/localgpt-gen/SKILL.md", "utf8");
 const curatedCount = loadCuratedToolCount();
 
 const readActionVersion = (workflow, action) => {
-  const match = workflow.match(new RegExp(`${action.replace("/", "\\/")}@v(\\d+)`));
+  const escapedAction = action.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+  const match = workflow.match(
+    new RegExp(
+      `^\\s*(?:-\\s*)?uses:\\s*${escapedAction}@v(\\d+)\\b`,
+      "m",
+    ),
+  );
   return match?.[1];
 };
 
@@ -74,6 +80,10 @@ test("ROADMAP current state matches curated tool count", () => {
 test("ROADMAP current state matches CI workflow action versions", () => {
   const checkoutVersion = readActionVersion(ciWorkflow, "actions/checkout");
   const setupNodeVersion = readActionVersion(ciWorkflow, "actions/setup-node");
+  const publishCheckoutVersion = readActionVersion(
+    publishWorkflow,
+    "actions/checkout",
+  );
   const publishSetupNodeVersion = readActionVersion(
     publishWorkflow,
     "actions/setup-node",
@@ -81,6 +91,15 @@ test("ROADMAP current state matches CI workflow action versions", () => {
 
   assert.ok(checkoutVersion, "ci.yml should pin actions/checkout");
   assert.ok(setupNodeVersion, "ci.yml should pin actions/setup-node");
+  assert.ok(
+    publishCheckoutVersion,
+    "publish.yml should pin actions/checkout",
+  );
+  assert.equal(
+    checkoutVersion,
+    publishCheckoutVersion,
+    "ci.yml and publish.yml should use the same checkout major",
+  );
   assert.equal(
     setupNodeVersion,
     publishSetupNodeVersion,
