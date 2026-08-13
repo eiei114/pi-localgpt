@@ -2,6 +2,7 @@ import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import test from "node:test";
 import { loadCuratedToolCount } from "../scripts/count-curated-tools.mjs";
+import { countNodeTestCases } from "../scripts/count-node-test-cases.mjs";
 
 const pkg = JSON.parse(readFileSync("package.json", "utf8"));
 const readme = readFileSync("README.md", "utf8");
@@ -72,6 +73,20 @@ test("ROADMAP current state matches curated tool count", () => {
     roadmap,
     new RegExp(
       `^\\| Tool surface \\| \\*\\*${curatedCount} curated gen wrappers\\b`,
+      "m",
+    ),
+  );
+});
+
+test("ROADMAP current state matches node:test case count", () => {
+  const nodeTestCount = countNodeTestCases();
+  assert.ok(nodeTestCount > 0, "expected at least one node:test case");
+
+  const backtick = "`";
+  assert.match(
+    roadmap,
+    new RegExp(
+      `^\\| Code health \\| .+\\*\\*${nodeTestCount} ${backtick}node:test${backtick} cases\\*\\*`,
       "m",
     ),
   );
