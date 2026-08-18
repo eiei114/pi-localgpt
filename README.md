@@ -130,6 +130,7 @@ Roblox trend summaries: [`docs/roblox-trend-prototype.md`](docs/roblox-trend-pro
 | Tool | Purpose |
 |---|---|
 | `localgpt_design_log_search` / `_get` / `_save` / `_log` | Design log search, read, durable save, daily append |
+| `localgpt_memory_search` / `_get` / `_save` / `_log` | **Deprecated** legacy aliases for the design-log tools above — planned removal in **`v0.12.0`** |
 | `localgpt_remember_worldgen` | Save design rationale linked to plan/evaluate/export/world artifacts |
 
 ### Scene
@@ -264,4 +265,4 @@ For vulnerability reporting, see [`SECURITY.md`](SECURITY.md).
 
 ## License
 
-MIT
+MIT

@@ -20,7 +20,7 @@ not a target for future work.
 | Architecture | Unified **1-shot MCP bridge** — each tool spawns `localgpt-gen mcp-server --connect`, sends one request, exits. No persistent process. |
 | Tool surface | **51 curated gen wrappers** (canonical `genToolMeta` count; excludes `localgpt_design_log_*` and legacy `localgpt_memory_save`/`localgpt_memory_log`) + `localgpt_gen_call` + design-log / vault / worldgen helpers |
 | Design log | 4 `localgpt_design_log_*` tools on the bridge (`memory_search`/`_get`/`_save`/`_log`); `localgpt_memory_search`/`_get` read aliases; `localgpt_memory_save`/`_log` write aliases |
-| Code health | `npm run typecheck` clean; **200 `node:test` cases** pass; strict TypeScript (`ES2022`, `NodeNext`) |
+| Code health | `npm run typecheck` clean; **203 `node:test` cases** pass; strict TypeScript (`ES2022`, `NodeNext`) |
 | CI/Release | Node 24 on `ci.yml` + `publish.yml` (`actions/checkout@v7`, `setup-node@v7`); auto-release + Trusted Publishing (no `NPM_TOKEN`) |
 | Skills | `skills/localgpt-gen/SKILL.md` + `skills/localgpt-memory/SKILL.md` |
 
@@ -44,8 +44,7 @@ not a target for future work.
 These themes guide which seeds to promote each week. They are deliberately
 **post-pivot**: every item assumes the unified MCP bridge is the architecture.
 
-- **Theme A — Finish the design-log rename.** The `v0.4.2` rename left behind
-  legacy aliases (no removal date). Close that loop.
+- **Theme A — Finish the design-log rename.** `v0.4.2` legacy `localgpt_memory_*` aliases now have a documented removal target (`v0.12.0`); remaining work is migration nudges and eventual removal.
 - **Theme B — Robustness of the 1-shot bridge.** The client works but is thin
   on diagnostics (no stderr capture, hard-coded timeout) and on failure-path
   test coverage. These are the modes users actually hit.
@@ -86,17 +85,11 @@ Estimate**.
   `npm run metadata:check`). README, `package.json`, `skills/localgpt-gen/SKILL.md`, and
   `tests/package-metadata.test.mjs` enforce the same number.
 
-### 🌱 Seed 3 — Set a deprecation timeline for `localgpt_memory_*` aliases
+### ✅ Seed 3 — Set a deprecation timeline for `localgpt_memory_*` aliases (DOT-1554)
 
-- **What:** `v0.4.2` added backward-compatible `localgpt_memory_*` aliases with
-  no removal target. Define a policy (e.g., document a removal version such as
-  `v0.6.0`) and add a deprecation signal — at minimum a one-time console hint
-  on first use, or a clear note in tool descriptions.
-- **Why:** Aliases without an end date accumulate forever; a clear path lets the
-  rename to "design log" actually complete.
-- **Acceptance:** Deprecation note in `CHANGELOG.md` + `README.md`; removal
-  version recorded in this ROADMAP; optional runtime hint with a test.
-- **Theme:** A · **Estimate:** 30–60 min
+- **Done:** Documented planned removal in **`v0.12.0`** across `CHANGELOG.md`, `README.md`,
+  and tool descriptions. Added a one-time `console.warn` on first legacy alias use
+  (`lib/localgpt-memory-alias-deprecation.ts` + tests).
 
 ### ✅ Seed 4 — Capture stderr in the 1-shot MCP client (DOT-1245)
 
