@@ -4,6 +4,8 @@
 
 ### Changed
 
+- Document a deprecation timeline for legacy `localgpt_memory_*` tool aliases (DOT-1554). Planned removal in **`v0.12.0`**; migrate to `localgpt_design_log_*`. Tool descriptions note the timeline; the extension emits a one-time `console.warn` on first legacy alias use per process.
+
 - Remove unused `lib/design-log-{read,search,write}.ts` modules (DOT-1240). All design-log tools remain on the unified 1-shot MCP bridge; workspace helpers (`localgpt-config.ts`, `localgpt-workspace.ts`) are unchanged.
 
 - Include short, sanitized `localgpt-gen` stderr excerpts in failed MCP bridge calls so relay, protocol, binary, or missing-window errors are easier to diagnose (DOT-1245).
