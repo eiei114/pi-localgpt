@@ -2,6 +2,12 @@
 
 ## Unreleased
 
+## [0.10.5] - 2026-08-22
+
+### Changed
+
+- Merge the 2026-08-22 managed OSS dependency and maintenance PR batch.
+
 ### Changed
 
 - Document a deprecation timeline for legacy `localgpt_memory_*` tool aliases (DOT-1554). Planned removal in **`v0.12.0`**; migrate to `localgpt_design_log_*`. Tool descriptions note the timeline; the extension emits a one-time `console.warn` on first legacy alias use per process.
@@ -149,4 +155,3 @@ All notable changes to this project will be documented in this file.
 
 - Search is keyword-based; upstream hybrid semantic/sqlite-vec ranking is not replicated.
 - **Removed in 0.3.0** — replaced by MCP bridge unified architecture.
-
