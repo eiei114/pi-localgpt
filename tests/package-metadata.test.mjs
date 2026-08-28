@@ -92,6 +92,14 @@ test("ROADMAP current state matches node:test case count", () => {
   );
 });
 
+test("ci.yml does not install Bun when the project is npm-only", () => {
+  assert.doesNotMatch(
+    ciWorkflow,
+    /oven-sh\/setup-bun/,
+    "ci.yml should not reference setup-bun; this repo validates with npm only",
+  );
+});
+
 test("ROADMAP current state matches CI workflow action versions", () => {
   const checkoutVersion = readActionVersion(ciWorkflow, "actions/checkout");
   const setupNodeVersion = readActionVersion(ciWorkflow, "actions/setup-node");
