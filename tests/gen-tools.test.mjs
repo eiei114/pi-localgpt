@@ -2,7 +2,7 @@ import assert from "node:assert/strict";
 import test from "node:test";
 import { EventEmitter } from "node:events";
 
-const { checkGenBinary, genCallTool, genListTools } = await import("../lib/gen-mcp-client.ts");
+const { checkGenBinary, genCallTool, genListTools, resolveTimeoutMs, DEFAULT_TIMEOUT_MS, LOCALGPT_GEN_TIMEOUT_MS_ENV } = await import("../lib/gen-mcp-client.ts");
 const { formatGenStatus, inspectGenStatus } = await import("../lib/gen-status.ts");
 const {
   genScreenshot, genSceneInfo, genSpawnPrimitive, genModifyEntity,
@@ -192,6 +192,83 @@ test("tools/call timeout includes stderr emitted before timeout", async () => {
   await assert.rejects(
     genCallTool("gen_screenshot", {}, { spawnFn: mock.spawnFn, timeoutMs: 150 }),
     /Timed out waiting for MCP response id=2 \(150ms\); stderr: waiting for Bevy window relay/,
+  );
+});
+
+test("LOCALGPT_GEN_TIMEOUT_MS env overrides default timeout", async () => {
+  const prev = process.env[LOCALGPT_GEN_TIMEOUT_MS_ENV];
+  process.env[LOCALGPT_GEN_TIMEOUT_MS_ENV] = "200";
+  try {
+    const responses = new Map([
+      ["initialize", { protocolVersion: "2024-11-05" }],
+    ]);
+    const mock = createMockSpawn(responses);
+
+    await assert.rejects(
+      genCallTool("gen_screenshot", {}, { spawnFn: mock.spawnFn }),
+      /Timed out waiting for MCP response id=2 \(200ms\)/,
+    );
+  } finally {
+    if (prev === undefined) delete process.env[LOCALGPT_GEN_TIMEOUT_MS_ENV];
+    else process.env[LOCALGPT_GEN_TIMEOUT_MS_ENV] = prev;
+  }
+});
+
+test("explicit timeoutMs overrides LOCALGPT_GEN_TIMEOUT_MS env", async () => {
+  const prev = process.env[LOCALGPT_GEN_TIMEOUT_MS_ENV];
+  process.env[LOCALGPT_GEN_TIMEOUT_MS_ENV] = "5000";
+  try {
+    assert.equal(resolveTimeoutMs(120), 120);
+
+    const responses = new Map([
+      ["initialize", { protocolVersion: "2024-11-05" }],
+    ]);
+    const mock = createMockSpawn(responses);
+
+    await assert.rejects(
+      genCallTool("gen_screenshot", {}, { spawnFn: mock.spawnFn, timeoutMs: 100 }),
+      /Timed out waiting for MCP response id=2 \(100ms\)/,
+    );
+  } finally {
+    if (prev === undefined) delete process.env[LOCALGPT_GEN_TIMEOUT_MS_ENV];
+    else process.env[LOCALGPT_GEN_TIMEOUT_MS_ENV] = prev;
+  }
+});
+
+test("resolveTimeoutMs falls back to 30s default", () => {
+  const prev = process.env[LOCALGPT_GEN_TIMEOUT_MS_ENV];
+  delete process.env[LOCALGPT_GEN_TIMEOUT_MS_ENV];
+  try {
+    assert.equal(resolveTimeoutMs(), DEFAULT_TIMEOUT_MS);
+    assert.equal(resolveTimeoutMs(undefined), DEFAULT_TIMEOUT_MS);
+  } finally {
+    if (prev !== undefined) process.env[LOCALGPT_GEN_TIMEOUT_MS_ENV] = prev;
+  }
+});
+
+test("genApplyBlockout forwards timeoutMs param to MCP client", async () => {
+  const responses = new Map([
+    ["initialize", { protocolVersion: "2024-11-05" }],
+  ]);
+  const mock = createMockSpawn(responses, {
+    stderrChunks: ["blockout in progress"],
+  });
+
+  await assert.rejects(
+    genApplyBlockout({ layout: { regions: [] }, timeoutMs: 120 }, { spawnFn: mock.spawnFn }),
+    /Timed out waiting for MCP response id=2 \(120ms\); stderr: blockout in progress/,
+  );
+});
+
+test("genAutoRefine forwards timeoutMs param to MCP client", async () => {
+  const responses = new Map([
+    ["initialize", { protocolVersion: "2024-11-05" }],
+  ]);
+  const mock = createMockSpawn(responses);
+
+  await assert.rejects(
+    genAutoRefine({ max_iterations: 2, timeoutMs: 130 }, { spawnFn: mock.spawnFn }),
+    /Timed out waiting for MCP response id=2 \(130ms\)/,
   );
 });
 

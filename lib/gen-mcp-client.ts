@@ -29,7 +29,39 @@ export interface GenCallOptions {
 
 const DEFAULT_COMMAND = "localgpt-gen";
 const DEFAULT_CONNECT_ARGS = ["mcp-server", "--connect"];
-const DEFAULT_TIMEOUT_MS = 30_000;
+export const DEFAULT_TIMEOUT_MS = 30_000;
+export const LOCALGPT_GEN_TIMEOUT_MS_ENV = "LOCALGPT_GEN_TIMEOUT_MS";
+
+function parseStrictPositiveInteger(raw: string): number | undefined {
+  if (!/^[1-9]\d*$/.test(raw)) return undefined;
+  return Number(raw);
+}
+
+/** Resolve MCP client timeout: explicit param > env override > 30s default. */
+export function resolveTimeoutMs(explicit?: number): number {
+  if (typeof explicit === "number" && Number.isFinite(explicit) && explicit > 0) {
+    return explicit;
+  }
+  const envRaw = process.env[LOCALGPT_GEN_TIMEOUT_MS_ENV];
+  if (envRaw !== undefined) {
+    const parsed = parseStrictPositiveInteger(envRaw);
+    if (parsed !== undefined) return parsed;
+  }
+  return DEFAULT_TIMEOUT_MS;
+}
+
+/** Split tool params from an optional per-call timeout override. */
+export function splitGenCallParams(params: Record<string, unknown>): {
+  toolParams: Record<string, unknown>;
+  options: GenCallOptions;
+} {
+  const { timeoutMs, ...toolParams } = params;
+  const options: GenCallOptions = {};
+  if (typeof timeoutMs === "number" && Number.isFinite(timeoutMs) && timeoutMs > 0) {
+    options.timeoutMs = timeoutMs;
+  }
+  return { toolParams, options };
+}
 const STDERR_MAX_CHARS = 2_000;
 const STDERR_MAX_LINES = 20;
 const ANSI_ESCAPE_PATTERN = /\u001b(?:\[[0-?]*[ -/]*[@-~]|\][^\u0007]*(?:\u0007|\u001b\\)|[@-Z\\-_])/g;
@@ -71,7 +103,7 @@ async function genMcpOneShot(
 ): Promise<unknown> {
   const command = options.command ?? DEFAULT_COMMAND;
   const connectArgs = options.connectArgs ?? DEFAULT_CONNECT_ARGS;
-  const timeoutMs = options.timeoutMs ?? DEFAULT_TIMEOUT_MS;
+  const timeoutMs = resolveTimeoutMs(options.timeoutMs);
   const spawnFn = options.spawnFn ?? spawn;
   const signal = options.signal;
 
