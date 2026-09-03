@@ -1,7 +1,7 @@
 import type { ExtensionAPI } from "@earendil-works/pi-coding-agent";
 import { Type } from "typebox";
 import { promptForCommandInput } from "../lib/command-input.ts";
-import { genCallTool } from "../lib/gen-mcp-client.ts";
+import { genCallTool, type GenCallOptions } from "../lib/gen-mcp-client.ts";
 import { formatGenStatus, inspectGenStatus } from "../lib/gen-status.ts";
 import { exportPromptPackSchema, exportPromptPack } from "../lib/vault-prompt-pack-export.ts";
 import { formatLocalGptStatus, inspectLocalGptStatus, statusNotificationLevel } from "../lib/localgpt-status.ts";
@@ -270,6 +270,9 @@ export default function (pi: ExtensionAPI) {
   const genCallParameters = Type.Object({
     tool: Type.String({ description: "Gen or design-log tool name, e.g. gen_screenshot, gen_scene_info, gen_spawn_primitive, memory_search" }),
     args: Type.Optional(Type.Record(Type.String(), Type.Unknown(), { description: "Arguments for the tool" })),
+    timeoutMs: Type.Optional(Type.Number({
+      description: "One-shot MCP client timeout in milliseconds. Overrides LOCALGPT_GEN_TIMEOUT_MS env (default 30000).",
+    })),
   });
 
   const memorySearchParameters = Type.Object({
@@ -403,7 +406,11 @@ export default function (pi: ExtensionAPI) {
     parameters: genCallParameters,
     async execute(_toolCallId, params, signal) {
       try {
-        const result = await genCallTool(params.tool, (params.args as Record<string, unknown>) ?? {}, { signal });
+        const callOptions: GenCallOptions = { signal };
+        if (typeof params.timeoutMs === "number" && Number.isFinite(params.timeoutMs) && params.timeoutMs > 0) {
+          callOptions.timeoutMs = params.timeoutMs;
+        }
+        const result = await genCallTool(params.tool, (params.args as Record<string, unknown>) ?? {}, callOptions);
 
         const text = typeof result === "string"
           ? result

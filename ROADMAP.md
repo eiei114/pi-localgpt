@@ -20,7 +20,7 @@ not a target for future work.
 | Architecture | Unified **1-shot MCP bridge** — each tool spawns `localgpt-gen mcp-server --connect`, sends one request, exits. No persistent process. |
 | Tool surface | **51 curated gen wrappers** (canonical `genToolMeta` count; excludes `localgpt_design_log_*` and legacy `localgpt_memory_save`/`localgpt_memory_log`) + `localgpt_gen_call` + design-log / vault / worldgen helpers |
 | Design log | 4 `localgpt_design_log_*` tools on the bridge (`memory_search`/`_get`/`_save`/`_log`); `localgpt_memory_search`/`_get` read aliases; `localgpt_memory_save`/`_log` write aliases |
-| Code health | `npm run typecheck` clean; **204 `node:test` cases** pass; strict TypeScript (`ES2022`, `NodeNext`) |
+| Code health | `npm run typecheck` clean; **209 `node:test` cases** pass; strict TypeScript (`ES2022`, `NodeNext`) |
 | CI/Release | Node 24 on `ci.yml` + `publish.yml` (`actions/checkout@v7`, `setup-node@v7`); auto-release + Trusted Publishing (no `NPM_TOKEN`) |
 | Skills | `skills/localgpt-gen/SKILL.md` + `skills/localgpt-memory/SKILL.md` |
 
@@ -96,18 +96,12 @@ Estimate**.
 - **Done:** Failed bridge calls append a sanitized stderr excerpt; regression tests in
   `tests/gen-tools.test.mjs` cover initialize, tools/list, timeout, and empty-stderr paths.
 
-### 🌱 Seed 5 — Make the 1-shot client timeout configurable per tool
+### ✅ Seed 5 — Make the 1-shot client timeout configurable per tool (DOT-1683)
 
-- **What:** The bridge hard-codes a 30s timeout (`DEFAULT_TIMEOUT_MS`). The
-  option already exists on `GenCallOptions.timeoutMs` but curated wrappers and
-  `localgpt_gen_call` only forward `signal`. Surface `timeoutMs` (or an env
-  override like `LOCALGPT_GEN_TIMEOUT_MS`) on `localgpt_gen_call` and the
-  long-running wrappers (`gen_refine`, `gen_apply_blockout`, `gen_regenerate`).
-- **Why:** 30s is brittle for AI-driven evaluate/refine loops; users hit an
-  opaque "Timed out waiting for MCP response" with no knob.
-- **Acceptance:** `localgpt_gen_call` + flagged long-running wrappers accept and
-  forward a timeout; a test proves the override is respected end-to-end.
-- **Theme:** B · **Estimate:** 30–60 min
+- **Done:** `localgpt_gen_call`, `localgpt_gen_blockout`, `localgpt_gen_refine`, and
+  `localgpt_gen_regenerate` accept optional `timeoutMs`; `LOCALGPT_GEN_TIMEOUT_MS`
+  env overrides the 30s default. Regression tests in `tests/gen-tools.test.mjs` prove
+  param and env overrides reach the MCP client.
 
 ### ✅ Seed 6 — Add failure-path tests for the 1-shot client (DOT-1245)
 

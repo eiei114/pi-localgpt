@@ -10,7 +10,7 @@
  */
 
 import { Type, type TObject, type TSchema } from "typebox";
-import { genCallTool, type GenCallOptions } from "./gen-mcp-client.ts";
+import { genCallTool, splitGenCallParams, type GenCallOptions } from "./gen-mcp-client.ts";
 import {
   prepareVaultScreenshotExport,
   wantsVaultScreenshotExport,
@@ -40,6 +40,18 @@ function toolResult(text: string, details?: unknown) {
     content: [{ type: "text" as const, text }],
     details,
   };
+}
+
+const genTimeoutMsField = Type.Optional(Type.Number({
+  description: "One-shot MCP client timeout in milliseconds. Overrides LOCALGPT_GEN_TIMEOUT_MS env (default 30000).",
+}));
+
+function mergeGenCallOptions(
+  params: Record<string, unknown>,
+  options?: GenCallOptions,
+): { toolParams: Record<string, unknown>; options: GenCallOptions } {
+  const { toolParams, options: paramOptions } = splitGenCallParams(params);
+  return { toolParams, options: { ...paramOptions, ...options } };
 }
 
 const vaultScreenshotExportFields = {
@@ -396,13 +408,15 @@ export async function genPlanFromRobloxTrend(
 
 export const applyBlockoutSchema = Type.Object({
   layout: Type.Record(Type.String(), Type.Unknown(), { description: "Layout spec from gen_plan_layout result." }),
+  timeoutMs: genTimeoutMsField,
 });
 
 export async function genApplyBlockout(
   params: Record<string, unknown>,
   options?: GenCallOptions,
 ) {
-  const result = await genCallTool("gen_apply_blockout", params, options);
+  const { toolParams, options: callOptions } = mergeGenCallOptions(params, options);
+  const result = await genCallTool("gen_apply_blockout", toolParams, callOptions);
   return toolResult(
     typeof result === "string" ? result : JSON.stringify(result, null, 2),
     result,
@@ -591,13 +605,15 @@ export async function genEvaluateScene(
 export const autoRefineSchema = Type.Object({
   max_iterations: Type.Optional(Type.Number({ description: "Maximum refine loop iterations. Default: 3." })),
   goal: Type.Optional(Type.String({ description: "Quality goal or criteria for refinement." })),
+  timeoutMs: genTimeoutMsField,
 });
 
 export async function genAutoRefine(
   params: Record<string, unknown>,
   options?: GenCallOptions,
 ) {
-  const result = await genCallTool("gen_auto_refine", params, options);
+  const { toolParams, options: callOptions } = mergeGenCallOptions(params, options);
+  const result = await genCallTool("gen_auto_refine", toolParams, callOptions);
   return toolResult(
     typeof result === "string" ? result : JSON.stringify(result, null, 2),
     result,
@@ -624,13 +640,15 @@ export async function genBuildNavmesh(
 export const regenerateSchema = Type.Object({
   region_ids: Type.Optional(Type.Array(Type.String(), { description: "Regions to regenerate. Default: all changed." })),
   preserve_manual: Type.Optional(Type.Boolean({ description: "Preserve manually placed entities. Default: true." })),
+  timeoutMs: genTimeoutMsField,
 });
 
 export async function genRegenerate(
   params: Record<string, unknown>,
   options?: GenCallOptions,
 ) {
-  const result = await genCallTool("gen_regenerate", params, options);
+  const { toolParams, options: callOptions } = mergeGenCallOptions(params, options);
+  const result = await genCallTool("gen_regenerate", toolParams, callOptions);
   return toolResult(
     typeof result === "string" ? result : JSON.stringify(result, null, 2),
     result,
