@@ -6,6 +6,10 @@ the **current unified MCP bridge architecture** (stable since `v0.3.0`); the
 pre-`v0.3.0` direct-filesystem memory access pattern has been removed and is
 not a target for future work.
 
+> **Last refreshed:** 2026-09-05 (DOT-1010) — re-enabled roadmap-driven seeding
+> after workspace repair; current-state table verified against `package.json`,
+> CI workflows, and `npm audit`.
+
 > Scope note: this file is a living planning document, not a release contract.
 > Seed items are intentionally small (30–90 minutes each). Promote a seed into
 > a tracked issue when you intend to work on it, then mark it ✅ here.
@@ -22,6 +26,7 @@ not a target for future work.
 | Design log | 4 `localgpt_design_log_*` tools on the bridge (`memory_search`/`_get`/`_save`/`_log`); `localgpt_memory_search`/`_get` read aliases; `localgpt_memory_save`/`_log` write aliases |
 | Code health | `npm run typecheck` clean; **209 `node:test` cases** pass; strict TypeScript (`ES2022`, `NodeNext`) |
 | CI/Release | Node 24 on `ci.yml` + `publish.yml` (`actions/checkout@v7`, `setup-node@v7`); auto-release + Trusted Publishing (no `NPM_TOKEN`) |
+| Dependencies | `npm audit` reports **0 vulnerabilities** (dev tree via `@earendil-works/pi-coding-agent`; not shipped to npm consumers) |
 | Skills | `skills/localgpt-gen/SKILL.md` + `skills/localgpt-memory/SKILL.md` |
 
 ### Release history (architecture-relevant)
@@ -39,26 +44,29 @@ not a target for future work.
 
 ---
 
-## 2. Themes for the next 2–3 releases
+## 2. Themes for the next 1–2 releases
 
 These themes guide which seeds to promote each week. They are deliberately
 **post-pivot**: every item assumes the unified MCP bridge is the architecture.
 
-- **Theme A — Finish the design-log rename.** `v0.4.2` legacy `localgpt_memory_*` aliases now have a documented removal target (`v0.12.0`); remaining work is migration nudges and eventual removal.
-- **Theme B — Robustness of the 1-shot bridge.** The client works but is thin
-  on diagnostics (no stderr capture, hard-coded timeout) and on failure-path
-  test coverage. These are the modes users actually hit.
-- **Theme C — Docs accuracy & tool-surface truth.** Headline tool counts and
-  README claims drift from the code; make the docs self-checking.
-- **Theme D — Dependency hygiene.** Resolve or explicitly accept the current
-  `npm audit` advisories and document blast radius (shipped vs dev).
+- **Theme A — Finish the design-log rename.** Legacy `localgpt_memory_*` aliases
+  have a documented removal target (`v0.12.0`); remaining work is migration
+  nudges and eventual removal.
+- **Theme B — Bridge robustness (mostly done).** Stderr capture, configurable
+  timeout, and failure-path tests landed in `v0.10.x` (DOT-1245, DOT-1683).
+  Residual work: richer offline/unreachable hints in `gen-status`.
+- **Theme C — Docs accuracy & onboarding.** Headline counts are self-checked via
+  `tests/package-metadata.test.mjs`; remaining gaps are examples, bilingual
+  SKILL coverage, and vault workflow discoverability.
+- **Theme D — Dependency hygiene (monitoring).** `npm audit` is clean as of
+  `v0.10.5`; re-run after `@earendil-works/pi-*` bumps and record blast radius.
 
 ### Tentative release mapping
 
-- **`v0.5.0`** — Theme A + C: complete the design-log rename decision and a
-  docs accuracy pass.
-- **`v0.6.0`** — Theme B: bridge robustness (stderr, timeout, failure tests).
-- **`v0.7.0`** — Theme D + polish: dependency review, examples, i18n.
+- **`v0.11.0`** — Theme C: examples directory + English SKILL summary (or
+  explicit Japanese-only decision).
+- **`v0.12.0`** — Theme A: remove `localgpt_memory_*` aliases per deprecation
+  timeline; migration guide in CHANGELOG.
 
 ---
 
@@ -108,30 +116,52 @@ Estimate**.
 - **Done:** `tests/gen-tools.test.mjs` covers MCP initialize errors, tools/list errors,
   tools/call timeout (with pre-timeout stderr), and empty-stderr failures.
 
-### 🌱 Seed 7 — Triage transitive dependency advisories
+### ✅ Seed 7 — Triage transitive dependency advisories (DOT-1010 refresh)
 
-- **What:** `npm audit` reports **3 high-severity advisories** (`protobufjs`
-  DoS ×2, `ws` DoS ×1), all via the `@earendil-works/pi-coding-agent`
-  transitive tree. Determine blast radius (these are dev/build deps, **not
-  shipped** to npm consumers since `files:` excludes `node_modules`), decide
-  whether `npm audit fix` is safe, and record the decision.
-- **Why:** Security hygiene + clarity for downstream consumers.
-- **Acceptance:** Documented assessment (shipped vs dev) in a comment or
-  `SECURITY.md` note; safe fix applied or explicitly accepted with rationale.
-- **Theme:** D · **Estimate:** 20–40 min
+- **Done (2026-09-05):** `npm audit` reports **0 vulnerabilities** on the
+  current dev tree. Blast radius remains dev-only (`files:` excludes
+  `node_modules` from the npm tarball). Re-check after `@earendil-works/pi-*`
+  bumps; no fix required at `v0.10.5`.
+
+### 🌱 Seed 8 — Add English summary to `skills/localgpt-gen/SKILL.md`
+
+- **What:** `skills/localgpt-gen/SKILL.md` is Japanese-only while README and
+  other docs are English. Add a short English summary section at the top, or
+  document in ROADMAP/CONTRIBUTING that Japanese-only is intentional.
+- **Why:** Reduces onboarding friction for non-Japanese contributors and aligns
+  with the English-first docs elsewhere in the repo.
+- **Acceptance:** English summary block **or** explicit maintainer decision
+  recorded in CONTRIBUTING; skill still loads in Pi.
+- **Theme:** C · **Estimate:** 30–45 min
+
+### 🌱 Seed 9 — Add `examples/` WorldGen pipeline transcript
+
+- **What:** Create `examples/worldgen-pipeline.md` with one end-to-end transcript
+  (plan → blockout → populate → evaluate → refine) using the curated tool names.
+- **Why:** New users lack a concrete walkthrough; README quick start is terse.
+- **Acceptance:** Markdown example committed; README links to it; no runtime code
+  changes required.
+- **Theme:** C · **Estimate:** 45–60 min
+
+### 🌱 Seed 10 — Improve unreachable-bridge hint in `gen-status`
+
+- **What:** When `localgpt-gen` relay is unreachable, extend
+  `formatGenStatus`/`inspectGenStatus` output with setup steps (start Bevy window,
+  verify port 9878, check binary on PATH).
+- **Why:** Users hit relay failures often; current messages are terse compared
+  to README prerequisites.
+- **Acceptance:** Status output includes actionable next steps; unit test covers
+  the unreachable path.
+- **Theme:** B · **Estimate:** 30–60 min
 
 ### Backlog seeds (lower priority / needs maintainer input)
 
-- 🌱 **Bilingual or English SKILL.md summary.** `skills/localgpt-gen/SKILL.md`
-  is Japanese-only while all other docs are English. Add an English summary or
-  confirm the Japanese-only choice is intentional. *(Theme C, ~30–45 min —
-  confirm intent before doing.)*
-- 🌱 **Offline design-log `localgpt_gen_status` hint.** When the bridge is
-  unreachable, `gen-status` could point users at setup steps for the MCP bridge.
-  *(Depends on localgpt-gen relay; no local filesystem fallback planned.)*
-- 🌱 **Examples directory.** Add `examples/` with one end-to-end WorldGen
-  pipeline transcript (plan → blockout → populate → evaluate → refine) to help
-  new users. *(Theme C, ~45–60 min.)*
+- 🌱 **ROADMAP self-check in CI.** Optionally extend
+  `tests/package-metadata.test.mjs` to assert at least three 🌱 seeds exist
+  so planner drift is caught automatically. *(Theme C, ~30 min.)*
+- 🌱 **Publish smoke for v0.10.5.** Confirm npm tag matches `package.json` after
+  Trusted Publishing run; update Section 1 release note if tag lags. *(Theme D,
+  ~20 min — human npm publish may be required.)*
 
 ---
 
