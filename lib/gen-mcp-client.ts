@@ -113,7 +113,11 @@ async function genMcpOneShot(
   });
 
   let nextId = 1;
-  const lineBuffer: string[] = [];
+  const responsesById = new Map<number, JsonRpcResponse>();
+  const pendingWaiters = new Map<number, {
+    resolve: (value: JsonRpcResponse) => void;
+    reject: (err: Error) => void;
+  }>();
   let stderrTail = "";
   const stderrDecoder = new StringDecoder("utf8");
 
@@ -129,7 +133,23 @@ async function genMcpOneShot(
 
   const rl = createInterface({ input: proc.stdout! });
   rl.on("line", (line: string) => {
-    if (line.trim()) lineBuffer.push(line);
+    const trimmed = line.trim();
+    if (!trimmed) return;
+
+    try {
+      const msg = JSON.parse(trimmed) as JsonRpcResponse;
+      if (typeof msg.id !== "number") return;
+
+      responsesById.set(msg.id, msg);
+      const waiter = pendingWaiters.get(msg.id);
+      if (waiter) {
+        pendingWaiters.delete(msg.id);
+        responsesById.delete(msg.id);
+        waiter.resolve(msg);
+      }
+    } catch {
+      // Non-JSON line, skip
+    }
   });
 
   function writeRequest(m: string, p: Record<string, unknown>): number {
@@ -143,9 +163,14 @@ async function genMcpOneShot(
   }
 
   function waitForResponse(targetId: number, ms: number): Promise<JsonRpcResponse> {
+    const existing = responsesById.get(targetId);
+    if (existing) {
+      responsesById.delete(targetId);
+      return Promise.resolve(existing);
+    }
+
     return new Promise((resolve, reject) => {
       let settled = false;
-      let pollTimer: NodeJS.Timeout | undefined;
 
       const deadline = setTimeout(() => {
         finishReject(new Error(`Timed out waiting for MCP response id=${targetId} (${ms}ms)`));
@@ -155,7 +180,7 @@ async function genMcpOneShot(
         if (settled) return;
         settled = true;
         clearTimeout(deadline);
-        if (pollTimer) clearTimeout(pollTimer);
+        pendingWaiters.delete(targetId);
         resolve(value);
       };
 
@@ -163,29 +188,11 @@ async function genMcpOneShot(
         if (settled) return;
         settled = true;
         clearTimeout(deadline);
-        if (pollTimer) clearTimeout(pollTimer);
+        pendingWaiters.delete(targetId);
         reject(err);
       };
 
-      const poll = () => {
-        if (settled) return;
-        for (let i = lineBuffer.length - 1; i >= 0; i--) {
-          try {
-            const msg = JSON.parse(lineBuffer[i]!) as JsonRpcResponse;
-            if (msg.id === targetId) {
-              lineBuffer.splice(i, 1);
-              finishResolve(msg);
-              return;
-            }
-          } catch {
-            // Non-JSON line, skip
-          }
-        }
-        // Retry after short delay
-        pollTimer = setTimeout(poll, 50);
-      };
-
-      poll();
+      pendingWaiters.set(targetId, { resolve: finishResolve, reject: finishReject });
     });
   }
 
@@ -201,6 +208,11 @@ async function genMcpOneShot(
     proc.stderr?.removeListener("data", onStderrData);
     rl.close();
     if (signal && onAbort) signal.removeEventListener("abort", onAbort);
+    for (const [, waiter] of pendingWaiters) {
+      waiter.reject(new Error("MCP client cleanup"));
+    }
+    pendingWaiters.clear();
+    responsesById.clear();
     if (!proc.killed) {
       try { proc.stdin!.end(); } catch { /* already closed */ }
       proc.kill();
