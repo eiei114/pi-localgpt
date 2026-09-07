@@ -5,6 +5,16 @@ description: LocalGPT Gen 3Dワールド構築を Pi から操作。1-shot CLI �
 
 # LocalGPT Gen
 
+## English summary
+
+[LocalGPT Gen](https://localgpt.app/docs/gen/) is a real-time 3D level-design tool built on Bevy. `pi-localgpt` exposes **51 curated Pi tools** for design log, scene manipulation, WorldGen pipeline, and export — all routed through a **unified one-shot MCP bridge**: each call spawns `localgpt-gen mcp-server --connect`, sends one MCP request, and exits (no persistent background process).
+
+**Prerequisites:** install `localgpt-gen` (`cargo install localgpt-gen`) and run it interactively (Bevy window open) so the `--connect` relay is reachable. Check with `localgpt_gen_status` before calling other tools.
+
+The detailed tool tables and workflows below are in Japanese for maintainer ergonomics; tool names and architecture match the English README.
+
+---
+
 [LocalGPT Gen](https://localgpt.app/docs/gen/) は Bevy エンジンによるリアルタイム3Dレベルデザインツール。`pi-localgpt` は `localgpt-gen mcp-server --connect` を **1ショット spawn** で呼び出し、常駐プロセスを作らない。
 
 ## 前提
