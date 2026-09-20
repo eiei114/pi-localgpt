@@ -123,16 +123,14 @@ Estimate**.
   `node_modules` from the npm tarball). Re-check after `@earendil-works/pi-*`
   bumps; no fix required at `v0.10.5`.
 
-### 🌱 Seed 8 — Add English summary to `skills/localgpt-gen/SKILL.md`
+### ✅ Seed 8 — Add English usage summary to `skills/localgpt-gen/SKILL.md` (DOT-1861)
 
-- **What:** `skills/localgpt-gen/SKILL.md` is Japanese-only while README and
-  other docs are English. Add a short English summary section at the top, or
-  document in ROADMAP/CONTRIBUTING that Japanese-only is intentional.
-- **Why:** Reduces onboarding friction for non-Japanese contributors and aligns
-  with the English-first docs elsewhere in the repo.
-- **Acceptance:** English summary block **or** explicit maintainer decision
-  recorded in CONTRIBUTING; skill still loads in Pi.
-- **Theme:** C · **Estimate:** 30–45 min
+- **Done (2026-09-20):** `skills/localgpt-gen/SKILL.md` now starts with an
+  English usage summary covering prerequisites, the WorldGen flow, direct scene
+  edits, save/export tools, and design-log capture.
+- **Acceptance:** English summary block is present; skill front matter remains
+  unchanged so Pi can still load the skill.
+- **Theme:** C
 
 ### 🌱 Seed 9 — Add `examples/` WorldGen pipeline transcript
 
