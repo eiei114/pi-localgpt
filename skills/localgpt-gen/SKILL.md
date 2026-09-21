@@ -5,11 +5,15 @@ description: LocalGPT Gen 3Dワールド構築を Pi から操作。1-shot CLI �
 
 # LocalGPT Gen
 
-## English summary
+## English usage summary
 
 [LocalGPT Gen](https://localgpt.app/docs/gen/) is a real-time 3D level-design tool built on Bevy. `pi-localgpt` exposes **51 curated Pi tools** for design log, scene manipulation, WorldGen pipeline, and export — all routed through a **unified one-shot MCP bridge**: each call spawns `localgpt-gen mcp-server --connect`, sends one MCP request, and exits (no persistent background process).
 
 **Prerequisites:** install `localgpt-gen` (`cargo install localgpt-gen`) and run it interactively (Bevy window open) so the `--connect` relay is reachable. Check with `localgpt_gen_status` before calling other tools.
+
+**Typical flow:** start from a prompt, vault note, or Roblox trend summary with `localgpt_gen_plan`, `localgpt_gen_plan_from_note`, or `localgpt_gen_plan_from_roblox_trend`; apply the layout with `localgpt_gen_blockout`; optionally add a navmesh with `localgpt_gen_navmesh`; fill the world with `localgpt_gen_populate`; then use `localgpt_gen_evaluate` and `localgpt_gen_refine` to iterate. Save or export the result with `localgpt_gen_save`, `localgpt_gen_export_screenshot`, `localgpt_gen_export_gltf`, or `localgpt_gen_export_html`.
+
+For direct scene editing, use `localgpt_gen_spawn` / `localgpt_gen_spawn_batch` for primitives, `localgpt_gen_modify` / `localgpt_gen_delete` for changes, and the camera, light, terrain, sky, audio, NPC, trigger, and physics tools below for focused additions. Record reusable design context with `localgpt_design_log_save` (durable level-design decisions and preferences that persist across sessions); use `localgpt_design_log_log` for timestamped daily notes.
 
 The detailed tool tables and workflows below are in Japanese for maintainer ergonomics; tool names and architecture match the English README.
 
