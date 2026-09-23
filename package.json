@@ -30,6 +30,7 @@
     "skills/",
     "scripts/",
     "docs/",
+    "examples/",
     "README.md",
     "LICENSE",
     "CHANGELOG.md"

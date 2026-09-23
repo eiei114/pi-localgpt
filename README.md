@@ -102,6 +102,8 @@ If you only need the upstream LocalGPT MCP server (without Pi extension tools, s
 
 See [`skills/localgpt-gen/SKILL.md`](skills/localgpt-gen/SKILL.md) for the full workflow guide.
 
+End-to-end WorldGen transcript: [`examples/worldgen-pipeline.md`](examples/worldgen-pipeline.md).
+
 Vault design memos: [`docs/vault-note-plan-layout.md`](docs/vault-note-plan-layout.md).
 
 Roblox trend summaries: [`docs/roblox-trend-prototype.md`](docs/roblox-trend-prototype.md).
