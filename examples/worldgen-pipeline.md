@@ -44,7 +44,18 @@ Keep the returned object as `layout`; it is the input for the blockout call.
 < Blockout applied: terrain, regions, and paths are now visible in the scene.
 ```
 
-### 3. Populate the regions
+### 3. Build the optional navigation mesh
+
+If the world will be explored by a player or NPC, build walkability after the
+blockout and before population:
+
+```text
+> localgpt_gen_navmesh {}
+
+< Walkability grid built for the current terrain.
+```
+
+### 4. Populate the regions
 
 Populate each region using its id from the blockout result. The density values
 are illustrative tuning knobs, not required secrets or environment settings.
@@ -81,7 +92,7 @@ are illustrative tuning knobs, not required secrets or environment settings.
 < dock populated
 ```
 
-### 4. Evaluate the current scene
+### 5. Evaluate the current scene
 
 ```text
 > localgpt_gen_evaluate {
@@ -99,7 +110,7 @@ are illustrative tuning knobs, not required secrets or environment settings.
 The evaluation result is a guide for the next iteration; it is not a guarantee
 that the scene meets a particular game or performance requirement.
 
-### 5. Refine against an explicit goal
+### 6. Refine against an explicit goal
 
 ```text
 > localgpt_gen_refine {
