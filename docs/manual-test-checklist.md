@@ -23,7 +23,8 @@ Minimum manual pass before tagging a release:
 ## Status check
 
 - [ ] `/localgpt:gen-status` shows binary found + relay reachable + tool count.
-- [ ] `localgpt_gen_status` returns same info as a tool.
+- [ ] When the binary is found but the relay is unreachable, status instructs you to keep the interactive Bevy window open, verify `127.0.0.1:9878`, and confirm `localgpt-gen` is on the same Pi session's `PATH`.
+- [ ] `localgpt_gen_status` returns the same shared status and recovery hints as the command.
 
 ## Design log tools
 

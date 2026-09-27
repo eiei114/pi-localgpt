@@ -20,11 +20,11 @@ not a target for future work.
 
 | Area | Status |
 |---|---|
-| Latest release | **`v0.10.10`** (`package.json`; npm tag pending until publish workflow runs) |
+| Latest release | **`v0.10.11`** (`package.json`; npm tag pending until publish workflow runs) |
 | Architecture | Unified **1-shot MCP bridge** — each tool spawns `localgpt-gen mcp-server --connect`, sends one request, exits. No persistent process. |
 | Tool surface | **51 curated gen wrappers** (canonical `genToolMeta` count; excludes `localgpt_design_log_*` and legacy `localgpt_memory_save`/`localgpt_memory_log`) + `localgpt_gen_call` + design-log / vault / worldgen helpers |
 | Design log | 4 `localgpt_design_log_*` tools on the bridge (`memory_search`/`_get`/`_save`/`_log`); `localgpt_memory_search`/`_get` read aliases; `localgpt_memory_save`/`_log` write aliases |
-| Code health | `npm run typecheck` clean; **209 `node:test` cases** pass; strict TypeScript (`ES2022`, `NodeNext`) |
+| Code health | `npm run typecheck` clean; **211 `node:test` cases** pass; strict TypeScript (`ES2022`, `NodeNext`) |
 | CI/Release | Node 24 on `ci.yml` + `publish.yml` (`actions/checkout@v7`, `setup-node@v7`); auto-release + Trusted Publishing (no `NPM_TOKEN`) |
 | Dependencies | `npm audit` reports **0 vulnerabilities** (dev tree via `@earendil-works/pi-coding-agent`; not shipped to npm consumers) |
 | Skills | `skills/localgpt-gen/SKILL.md` + `skills/localgpt-memory/SKILL.md` |

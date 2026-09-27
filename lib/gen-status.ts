@@ -15,7 +15,10 @@ function buildHints(summary: Omit<GenStatusSummary, "hints">): string[] {
   if (!summary.binary.found) {
     hints.push(summary.binary.error ?? "localgpt-gen not found. Install: cargo install localgpt-gen");
   } else if (!summary.relayReachable) {
-    hints.push("Binary found but relay not reachable. Start localgpt-gen interactively first, then gen tools will connect via --connect.");
+    hints.push("Binary found but relay is not reachable. Recovery steps:");
+    hints.push("1. Start localgpt-gen interactively and keep the Bevy window open.");
+    hints.push("2. Verify the --connect relay is available at 127.0.0.1:9878.");
+    hints.push("3. Confirm this Pi session resolves localgpt-gen on PATH, then retry.");
   }
 
   if (summary.relayReachable && summary.toolCount === 0) {

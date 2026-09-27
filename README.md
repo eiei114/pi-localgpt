@@ -52,7 +52,7 @@ pi install npm:pi-localgpt -l
 Pin a specific version when you want reproducible installs:
 
 ```bash
-pi install npm:pi-localgpt@0.10.10
+pi install npm:pi-localgpt@0.10.11
 ```
 
 Or install from GitHub:
@@ -96,7 +96,7 @@ If you only need the upstream LocalGPT MCP server (without Pi extension tools, s
 ## Quick start
 
 1. Start `localgpt-gen` interactively (Bevy window opens)
-2. Check relay: `/localgpt:gen-status` or `localgpt_gen_status`
+2. Check relay: `/localgpt:gen-status` or `localgpt_gen_status`. If it is unreachable, keep the interactive Bevy window open, verify `127.0.0.1:9878`, and confirm `localgpt-gen` is on this Pi session's `PATH`.
 3. Build world: `localgpt_gen_plan_from_roblox_trend` (Roblox trend summary), `localgpt_gen_plan_from_note` (vault memo), or `localgpt_gen_plan` (short text) → `localgpt_gen_blockout` → `localgpt_gen_populate`
 4. Save design: `localgpt_design_log_save`
 

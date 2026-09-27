@@ -303,6 +303,28 @@ test("formatGenStatus formats binary-not-found status", () => {
   assert.ok(text.includes("not reachable"));
 });
 
+test("formatGenStatus gives recovery steps for unreachable relay", () => {
+  const text = formatGenStatus({
+    ok: false,
+    binary: { found: true, command: "localgpt-gen", version: "0.5.0" },
+    relayReachable: false,
+    toolCount: 0,
+    tools: [],
+    hints: [
+      "Binary found but relay is not reachable. Recovery steps:",
+      "1. Start localgpt-gen interactively and keep the Bevy window open.",
+      "2. Verify the --connect relay is available at 127.0.0.1:9878.",
+      "3. Confirm this Pi session resolves localgpt-gen on PATH, then retry.",
+    ],
+  });
+
+  assert.match(text, /Start localgpt-gen interactively/);
+  assert.match(text, /Bevy window/);
+  assert.match(text, /127\.0\.0\.1:9878/);
+  assert.match(text, /same Pi session|this Pi session/);
+  assert.match(text, /PATH/);
+});
+
 test("formatGenStatus formats available status", () => {
   const text = formatGenStatus({
     ok: true,
@@ -317,6 +339,21 @@ test("formatGenStatus formats available status", () => {
   assert.ok(text.includes("v0.5.0"));
   assert.ok(text.includes("reachable"));
   assert.ok(text.includes("57"));
+});
+
+test("formatGenStatus keeps zero-tool reachable guidance separate", () => {
+  const text = formatGenStatus({
+    ok: true,
+    binary: { found: true, command: "localgpt-gen", version: "0.5.0" },
+    relayReachable: true,
+    toolCount: 0,
+    tools: [],
+    hints: ["Connected but no tools discovered. Check localgpt-gen version."],
+  });
+
+  assert.match(text, /Connected but no tools discovered/);
+  assert.doesNotMatch(text, /127\.0\.0\.1:9878/);
+  assert.doesNotMatch(text, /Bevy window/);
 });
 
 test("inspectGenStatus returns not-found when binary missing", async () => {
