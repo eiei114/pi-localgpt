@@ -23,6 +23,7 @@ import { Readable } from "node:stream";
 
 function createMockSpawn(responses, options = {}) {
   let callCount = 0;
+  let killCount = 0;
 
   return {
     spawnFn: (_command, _args, _opts) => {
@@ -69,7 +70,7 @@ function createMockSpawn(responses, options = {}) {
       emitter.stdout = stdout;
       emitter.stdin = stdin;
       emitter.stderr = new EventEmitter();
-      emitter.kill = () => { emitter.killed = true; };
+      emitter.kill = () => { killCount++; emitter.killed = true; };
 
       for (const chunk of options.stderrChunks ?? []) {
         setTimeout(() => emitter.stderr.emit("data", chunk), 0);
@@ -78,6 +79,7 @@ function createMockSpawn(responses, options = {}) {
       return emitter;
     },
     get callCount() { return callCount; },
+    get killCount() { return killCount; },
   };
 }
 
@@ -193,6 +195,25 @@ test("tools/call timeout includes stderr emitted before timeout", async () => {
     genCallTool("gen_screenshot", {}, { spawnFn: mock.spawnFn, timeoutMs: 150 }),
     /Timed out waiting for MCP response id=2 \(150ms\); stderr: waiting for Bevy window relay/,
   );
+});
+
+test("one-shot timeout returns bounded error and cleans up child", async () => {
+  const responses = new Map([
+    ["initialize", { protocolVersion: "2024-11-05" }],
+  ]);
+  const mock = createMockSpawn(responses, {
+    stderrChunks: [Array.from({ length: 40 }, (_, i) => `timeout-line-${i}-` + "x".repeat(100)).join("\n")],
+  });
+
+  await assert.rejects(
+    genCallTool("gen_screenshot", {}, { spawnFn: mock.spawnFn, timeoutMs: 40 }),
+    (err) => {
+      assert.match(err.message, /Timed out waiting for MCP response id=2 \(40ms\)/);
+      assert.ok(err.message.length < 2_200);
+      return true;
+    },
+  );
+  assert.equal(mock.killCount, 1);
 });
 
 test("LOCALGPT_GEN_TIMEOUT_MS env overrides default timeout", async () => {
