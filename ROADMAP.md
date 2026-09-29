@@ -141,15 +141,11 @@ Estimate**.
   changes required.
 - **Theme:** C · **Estimate:** 45–60 min
 
-### 🌱 Seed 10 — Improve unreachable-bridge hint in `gen-status`
+### ✅ Seed 10 — Improve unreachable-bridge hint in `gen-status` (DOT-2049)
 
-- **What:** When `localgpt-gen` relay is unreachable, extend
-  `formatGenStatus`/`inspectGenStatus` output with setup steps (start Bevy window,
-  verify port 9878, check binary on PATH).
-- **Why:** Users hit relay failures often; current messages are terse compared
-  to README prerequisites.
-- **Acceptance:** Status output includes actionable next steps; unit test covers
-  the unreachable path.
+- **Done:** `formatGenStatus` now reports actionable setup guidance when the
+  `localgpt-gen` relay is unreachable, including the interactive Bevy window,
+  relay address, and PATH checks; tests cover the unreachable path.
 - **Theme:** B · **Estimate:** 30–60 min
 
 ### Backlog seeds (lower priority / needs maintainer input)
