@@ -6,9 +6,8 @@ the **current unified MCP bridge architecture** (stable since `v0.3.0`); the
 pre-`v0.3.0` direct-filesystem memory access pattern has been removed and is
 not a target for future work.
 
-> **Last refreshed:** 2026-09-05 (DOT-1010) — re-enabled roadmap-driven seeding
-> after workspace repair; current-state table verified against `package.json`,
-> CI workflows, and `npm audit`.
+> **Last refreshed:** 2026-09-29 (DOT-2049) — current release state verified
+> against `package.json`, the npm registry, and the auto-release workflow.
 
 > Scope note: this file is a living planning document, not a release contract.
 > Seed items are intentionally small (30–90 minutes each). Promote a seed into
@@ -20,7 +19,7 @@ not a target for future work.
 
 | Area | Status |
 |---|---|
-| Latest release | **`v0.10.11`** (`package.json`; npm tag pending until publish workflow runs) |
+| Staged release | **`v0.10.11`** (`package.json`; npm latest is `v0.10.10`; publish pending) |
 | Architecture | Unified **1-shot MCP bridge** — each tool spawns `localgpt-gen mcp-server --connect`, sends one request, exits. No persistent process. |
 | Tool surface | **51 curated gen wrappers** (canonical `genToolMeta` count; excludes `localgpt_design_log_*` and legacy `localgpt_memory_save`/`localgpt_memory_log`) + `localgpt_gen_call` + design-log / vault / worldgen helpers |
 | Design log | 4 `localgpt_design_log_*` tools on the bridge (`memory_search`/`_get`/`_save`/`_log`); `localgpt_memory_search`/`_get` read aliases; `localgpt_memory_save`/`_log` write aliases |
@@ -29,7 +28,12 @@ not a target for future work.
 | Dependencies | `npm audit` reports **0 vulnerabilities** (dev tree via `@earendil-works/pi-coding-agent`; not shipped to npm consumers) |
 | Skills | `skills/localgpt-gen/SKILL.md` + `skills/localgpt-memory/SKILL.md` |
 
-### Release history (architecture-relevant)
+### Release and staged work history
+
+- **`v0.10.11` (staged; unpublished)** — Completed Seed 10, unreachable-relay
+  recovery hints, staged in [PR #83](https://github.com/eiei114/pi-localgpt/pull/83)
+  (DOT-2049). The latest npm-published version remains `v0.10.10`; publishing
+  is a separate human/controller gate.
 
 - **`v0.1.0`** — Direct filesystem memory access. **Removed in `v0.3.0`.**
 - **`v0.2.0`** — Gen MCP 1-shot bridge + first 27 curated gen tools.
@@ -140,17 +144,6 @@ Estimate**.
 - **Acceptance:** Markdown example committed; README links to it; no runtime code
   changes required.
 - **Theme:** C · **Estimate:** 45–60 min
-
-### 🌱 Seed 10 — Improve unreachable-bridge hint in `gen-status`
-
-- **What:** When `localgpt-gen` relay is unreachable, extend
-  `formatGenStatus`/`inspectGenStatus` output with setup steps (start Bevy window,
-  verify port 9878, check binary on PATH).
-- **Why:** Users hit relay failures often; current messages are terse compared
-  to README prerequisites.
-- **Acceptance:** Status output includes actionable next steps; unit test covers
-  the unreachable path.
-- **Theme:** B · **Estimate:** 30–60 min
 
 ### Backlog seeds (lower priority / needs maintainer input)
 
