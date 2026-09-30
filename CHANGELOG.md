@@ -1,5 +1,11 @@
 # Changelog
 
+## [0.10.12] - 2026-09-30
+
+### Changed
+
+- Update `@earendil-works/pi-*` dependencies to `0.99.1`.
+
 ## [0.10.11] - 2026-09-28
 
 - Improve unreachable `localgpt-gen` relay status with actionable Bevy window, `127.0.0.1:9878`, and same-session `PATH` recovery hints.
