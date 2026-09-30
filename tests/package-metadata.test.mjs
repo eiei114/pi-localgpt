@@ -58,11 +58,11 @@ test("localgpt-gen skill curated tool count matches canonical definition", () =>
   );
 });
 
-test("ROADMAP current state matches package.json version", () => {
+test("ROADMAP staged release matches package.json version", () => {
   assert.match(
     roadmap,
     new RegExp(
-      `^\\| Latest release \\| \\*\\*\\x60v${escapeRegExp(pkg.version)}\\x60\\*\\*`,
+      `^\\| Staged release \\| \\*\\*\\x60v${escapeRegExp(pkg.version)}\\x60\\*\\*`,
       "m",
     ),
   );

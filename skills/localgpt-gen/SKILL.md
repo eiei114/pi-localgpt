@@ -25,7 +25,7 @@ The detailed tool tables and workflows below are in Japanese for maintainer ergo
 
 1. `localgpt-gen` がインストール済み（`cargo install localgpt-gen`）
 2. **localgpt-gen がインタラクティブモードで起動中**（Bevy 窓あり）— `--connect` リレーがこれに接続する
-3. 利用前に `localgpt_gen_status` で binary + relay を確認
+3. 利用前に `localgpt_gen_status` で binary + relay を確認。relay に到達できない場合は、Bevy ウィンドウを開いたままにし、`127.0.0.1:9878` を確認してから、同じ Pi セッションの `PATH` に `localgpt-gen` があることを確認
 
 ## ツールカテゴリ
 
