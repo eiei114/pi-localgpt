@@ -64,7 +64,10 @@ These themes guide which seeds to promote each week. They are deliberately
 ### Tentative release mapping
 
 - **`v0.11.0`** — Theme C: examples directory + English SKILL summary (or
-  explicit Japanese-only decision).
+  explicit Japanese-only decision). Theme B: improve unreachable-bridge hints
+  in `gen-status` ([PR #86](https://github.com/eiei114/pi-localgpt/pull/86)).
+  **Completed:** `formatGenStatus` now includes setup guidance in unavailable-
+  status output; tests cover the status formatter.
 - **`v0.12.0`** — Theme A: remove `localgpt_memory_*` aliases per deprecation
   timeline; migration guide in CHANGELOG.
 
@@ -140,17 +143,6 @@ Estimate**.
 - **Acceptance:** Markdown example committed; README links to it; no runtime code
   changes required.
 - **Theme:** C · **Estimate:** 45–60 min
-
-### 🌱 Seed 10 — Improve unreachable-bridge hint in `gen-status`
-
-- **What:** When `localgpt-gen` relay is unreachable, extend
-  `formatGenStatus`/`inspectGenStatus` output with setup steps (start Bevy window,
-  verify port 9878, check binary on PATH).
-- **Why:** Users hit relay failures often; current messages are terse compared
-  to README prerequisites.
-- **Acceptance:** Status output includes actionable next steps; unit test covers
-  the unreachable path.
-- **Theme:** B · **Estimate:** 30–60 min
 
 ### Backlog seeds (lower priority / needs maintainer input)
 
