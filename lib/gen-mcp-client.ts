@@ -122,9 +122,7 @@ async function genMcpOneShot(
   const stderrDecoder = new StringDecoder("utf8");
 
   function appendStderrText(text: string): void {
-    // Keep the raw bounded tail and sanitize once when an error is formatted.
-    // Sanitizing every stderr chunk duplicates regex work for noisy processes.
-    stderrTail = trimStderrTail(stderrTail + text);
+    stderrTail = trimStderrTail(stderrTail + sanitizeStderrText(text));
   }
 
   const onStderrData = (chunk: Buffer | string): void => {
