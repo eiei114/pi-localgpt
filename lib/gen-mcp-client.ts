@@ -119,10 +119,44 @@ async function genMcpOneShot(
     reject: (err: Error) => void;
   }>();
   let stderrTail = "";
+  let stderrAnsiBuffer = "";
   const stderrDecoder = new StringDecoder("utf8");
 
-  function appendStderrText(text: string): void {
-    stderrTail = trimStderrTail(stderrTail + sanitizeStderrText(text));
+  function trailingAnsiStart(text: string): number | undefined {
+    const escape = String.fromCharCode(0x1b);
+    const start = text.lastIndexOf(escape);
+    if (start < 0) return undefined;
+
+    const suffix = text.slice(start);
+    if (suffix.length === 1) return start;
+    if (suffix[1] === "[") {
+      return [...suffix.slice(2)].some((char) => {
+        const code = char.charCodeAt(0);
+        return code >= 0x40 && code <= 0x7e;
+      }) ? undefined : start;
+    }
+    if (suffix[1] === "]") {
+      return suffix.slice(2).includes(String.fromCharCode(0x07))
+        || suffix.slice(2).includes(`${escape}\\`)
+        ? undefined
+        : start;
+    }
+    const code = suffix.charCodeAt(1);
+    return code >= 0x40 && code <= 0x5a || code >= 0x5c && code <= 0x5f
+      ? undefined
+      : start;
+  }
+
+  function appendStderrText(text: string, flush = false): void {
+    stderrAnsiBuffer += text;
+    const incompleteStart = trailingAnsiStart(stderrAnsiBuffer);
+    const complete = incompleteStart === undefined
+      ? stderrAnsiBuffer
+      : stderrAnsiBuffer.slice(0, incompleteStart);
+    stderrAnsiBuffer = flush || incompleteStart === undefined
+      ? ""
+      : stderrAnsiBuffer.slice(incompleteStart);
+    stderrTail = trimStderrTail(stderrTail + sanitizeStderrText(complete));
   }
 
   const onStderrData = (chunk: Buffer | string): void => {
@@ -197,7 +231,7 @@ async function genMcpOneShot(
   }
 
   function errorWithStderr(message: string): Error {
-    appendStderrText(stderrDecoder.end());
+    appendStderrText(stderrDecoder.end(), true);
     const stderrExcerpt = formatStderrExcerpt(stderrTail);
     return new Error(stderrExcerpt ? `${message}; stderr: ${stderrExcerpt}` : message);
   }
