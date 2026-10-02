@@ -183,6 +183,24 @@ test("tools/list error includes stderr excerpt", async () => {
   );
 });
 
+test("stderr sanitization preserves ANSI sequences split across chunks", async () => {
+  const responses = new Map([
+    ["initialize", { error: { code: -32603, message: "relay refused" } }],
+  ]);
+  const mock = createMockSpawn(responses, {
+    stderrChunks: ["prefix \u001b[", "31mred\u001b[0m suffix"],
+  });
+
+  await assert.rejects(
+    genListTools({ spawnFn: mock.spawnFn, timeoutMs: 5000 }),
+    (err) => {
+      assert.equal(err.message, "MCP initialize error: relay refused; stderr: prefix red suffix");
+      assert.doesNotMatch(err.message, /\u001b|\[31m|\[0m/);
+      return true;
+    },
+  );
+});
+
 test("tools/call timeout includes stderr emitted before timeout", async () => {
   const responses = new Map([
     ["initialize", { protocolVersion: "2024-11-05" }],
