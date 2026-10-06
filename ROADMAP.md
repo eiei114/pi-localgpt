@@ -6,8 +6,8 @@ the **current unified MCP bridge architecture** (stable since `v0.3.0`); the
 pre-`v0.3.0` direct-filesystem memory access pattern has been removed and is
 not a target for future work.
 
-> **Last refreshed:** 2026-09-29 (DOT-2049) — current release state verified
-> against `package.json`, the npm registry, and the auto-release workflow.
+> **Last refreshed:** 2026-10-06 (DOT-2155) — current release state, test suite,
+> CI workflow, npm registry, and dependency audit re-verified.
 
 > Scope note: this file is a living planning document, not a release contract.
 > Seed items are intentionally small (30–90 minutes each). Promote a seed into
@@ -19,21 +19,23 @@ not a target for future work.
 
 | Area | Status |
 |---|---|
-| Staged release | **`v0.10.12`** (`package.json`; npm latest is `v0.10.10`; publish pending) |
+| Staged release | **`v0.10.12`** (`package.json`; npm latest is `v0.10.12`) |
 | Architecture | Unified **1-shot MCP bridge** — each tool spawns `localgpt-gen mcp-server --connect`, sends one request, exits. No persistent process. |
 | Tool surface | **51 curated gen wrappers** (canonical `genToolMeta` count; excludes `localgpt_design_log_*` and legacy `localgpt_memory_save`/`localgpt_memory_log`) + `localgpt_gen_call` + design-log / vault / worldgen helpers |
 | Design log | 4 `localgpt_design_log_*` tools on the bridge (`memory_search`/`_get`/`_save`/`_log`); `localgpt_memory_search`/`_get` read aliases; `localgpt_memory_save`/`_log` write aliases |
 | Code health | `npm run typecheck` clean; **213 `node:test` cases** pass; strict TypeScript (`ES2022`, `NodeNext`) |
 | CI/Release | Node 24 on `ci.yml` + `publish.yml` (`actions/checkout@v7`, `setup-node@v7`); auto-release + Trusted Publishing (no `NPM_TOKEN`) |
-| Dependencies | `npm audit` reports **0 vulnerabilities** (dev tree via `@earendil-works/pi-coding-agent`; not shipped to npm consumers) |
+| Dependencies | `npm audit` reports **1 high transitive dev-only vulnerability** in `brace-expansion`; not shipped to npm consumers; follow-up seed recorded below |
 | Skills | `skills/localgpt-gen/SKILL.md` + `skills/localgpt-memory/SKILL.md` |
 
 ### Release and staged work history
 
-- **`v0.10.11` (staged; unpublished)** — Completed Seed 10, unreachable-relay
-  recovery hints, staged in [PR #83](https://github.com/eiei114/pi-localgpt/pull/83)
-  (DOT-2049). The latest npm-published version remains `v0.10.10`; publishing
-  is a separate human/controller gate.
+- **`v0.10.12` (published)** — Updated the Pi SDK dependencies to `0.99.1`;
+  npm latest is verified at `v0.10.12`.
+- **`v0.10.11`** — Completed unreachable-relay recovery hints (DOT-2049).
+- **Post-release maintenance (2026-10-01–03)** — Deferred stderr sanitization
+  until failures, preserved the bounded sanitized stderr tail (DOT-2085/DOT-2093),
+  and added one-shot timeout cleanup coverage (DOT-2044).
 
 - **`v0.1.0`** — Direct filesystem memory access. **Removed in `v0.3.0`.**
 - **`v0.2.0`** — Gen MCP 1-shot bridge + first 27 curated gen tools.
@@ -56,19 +58,23 @@ These themes guide which seeds to promote each week. They are deliberately
 - **Theme A — Finish the design-log rename.** Legacy `localgpt_memory_*` aliases
   have a documented removal target (`v0.12.0`); remaining work is migration
   nudges and eventual removal.
-- **Theme B — Bridge robustness (mostly done).** Stderr capture, configurable
-  timeout, and failure-path tests landed in `v0.10.x` (DOT-1245, DOT-1683).
-  Residual work: richer offline/unreachable hints in `gen-status`.
+- **Theme B — Bridge robustness (done for current scope).** Stderr capture,
+  configurable timeout, failure-path tests, timeout cleanup, and actionable
+  offline/unreachable hints are covered in `v0.10.x` (DOT-1245, DOT-1683,
+  DOT-2044, DOT-2049, DOT-2085, DOT-2093).
 - **Theme C — Docs accuracy & onboarding.** Headline counts are self-checked via
   `tests/package-metadata.test.mjs`; remaining gaps are examples, bilingual
   SKILL coverage, and vault workflow discoverability.
-- **Theme D — Dependency hygiene (monitoring).** `npm audit` is clean as of
-  `v0.10.5`; re-run after `@earendil-works/pi-*` bumps and record blast radius.
+- **Theme D — Dependency hygiene (follow-up needed).** The current dev tree has
+  one high transitive `brace-expansion` advisory under
+  `@earendil-works/pi-coding-agent`; it is not shipped to npm consumers and
+  needs re-checking after the next Pi SDK update.
 
 ### Tentative release mapping
 
-- **`v0.11.0`** — Theme C: examples directory + English SKILL summary (or
-  explicit Japanese-only decision).
+- **`v0.11.0`** — Theme C: examples directory + English SKILL summary —
+  completed by DOT-1861/DOT-2015; retain as release history rather than an
+  active target.
 - **`v0.12.0`** — Theme A: remove `localgpt_memory_*` aliases per deprecation
   timeline; migration guide in CHANGELOG.
 
@@ -122,10 +128,11 @@ Estimate**.
 
 ### ✅ Seed 7 — Triage transitive dependency advisories (DOT-1010 refresh)
 
-- **Done (2026-09-05):** `npm audit` reports **0 vulnerabilities** on the
-  current dev tree. Blast radius remains dev-only (`files:` excludes
-  `node_modules` from the npm tarball). Re-check after `@earendil-works/pi-*`
-  bumps; no fix required at `v0.10.5`.
+- **Baseline (2026-09-05):** `npm audit` reported **0 vulnerabilities**. The
+  current audit now finds one high `brace-expansion` advisory under the dev-only
+  Pi SDK tree; `files:` excludes `node_modules` from the npm tarball. Re-check
+  after the next `@earendil-works/pi-*` bump; remediation remains a follow-up
+  seed because the package is transitive and not shipped to consumers.
 
 ### ✅ Seed 8 — Add English usage summary to `skills/localgpt-gen/SKILL.md` (DOT-1861)
 
@@ -136,23 +143,24 @@ Estimate**.
   unchanged so Pi can still load the skill.
 - **Theme:** C
 
-### 🌱 Seed 9 — Add `examples/` WorldGen pipeline transcript
+### ✅ Seed 9 — Add `examples/` WorldGen pipeline transcript (DOT-2015)
 
-- **What:** Create `examples/worldgen-pipeline.md` with one end-to-end transcript
-  (plan → blockout → populate → evaluate → refine) using the curated tool names.
-- **Why:** New users lack a concrete walkthrough; README quick start is terse.
-- **Acceptance:** Markdown example committed; README links to it; no runtime code
-  changes required.
+- **Done (2026-09-29):** Added `examples/worldgen-pipeline.md` with an end-to-end
+  plan → blockout → populate → evaluate → refine transcript and linked it from
+  the README. No runtime code changes were required.
 - **Theme:** C · **Estimate:** 45–60 min
 
 ### Backlog seeds (lower priority / needs maintainer input)
 
-- 🌱 **ROADMAP self-check in CI.** Optionally extend
-  `tests/package-metadata.test.mjs` to assert at least three 🌱 seeds exist
-  so planner drift is caught automatically. *(Theme C, ~30 min.)*
-- 🌱 **Publish smoke for v0.10.5.** Confirm npm tag matches `package.json` after
-  Trusted Publishing run; update Section 1 release note if tag lags. *(Theme D,
-  ~20 min — human npm publish may be required.)*
+- 🌱 **Remove deprecated memory aliases.** Remove the `localgpt_memory_*` aliases
+  at the planned `v0.12.0` boundary, add the migration note, and update tests.
+  *(Theme A, 60–90 min; maintainer review required.)*
+- 🌱 **ROADMAP self-check in CI.** Extend `tests/package-metadata.test.mjs` to
+  assert at least three 🌱 seeds exist so planner drift is caught automatically.
+  *(Theme C, ~30 min.)*
+- 🌱 **Re-check transitive audit after the next Pi SDK bump.** Verify whether
+  `brace-expansion` is fixed upstream; if not, document why no direct override
+  is safe. *(Theme D, 30–45 min.)*
 
 ---
 
