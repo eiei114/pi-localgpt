@@ -174,12 +174,12 @@ async function genMcpOneShot(
       const msg = JSON.parse(trimmed) as JsonRpcResponse;
       if (typeof msg.id !== "number") return;
 
-      responsesById.set(msg.id, msg);
       const waiter = pendingWaiters.get(msg.id);
       if (waiter) {
         pendingWaiters.delete(msg.id);
-        responsesById.delete(msg.id);
         waiter.resolve(msg);
+      } else {
+        responsesById.set(msg.id, msg);
       }
     } catch {
       // Non-JSON line, skip
