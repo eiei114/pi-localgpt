@@ -48,6 +48,18 @@ not a target for future work.
 
 ---
 
+## Roadmap review — 2026-W41
+
+The roadmap source is present and has been refreshed against the current `main` branch
+(release `0.10.4`). The next bounded maintenance candidates are:
+
+1. **Seed 3** — Set a deprecation timeline for `localgpt_memory_*` aliases.
+2. **Seed 5** — Make the 1-shot MCP client timeout configurable per tool.
+3. **Seed 7** — Triage transitive dependency advisories.
+
+These candidates are already recorded in the maintenance backlog below; no
+implementation or release action is part of this roadmap refresh.
+
 ## 2. Themes for the next 1–2 releases
 
 These themes guide which seeds to promote each week. They are deliberately
