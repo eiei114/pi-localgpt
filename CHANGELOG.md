@@ -1,5 +1,11 @@
 # Changelog
 
+## [0.10.13] - 2026-10-12
+
+### Changed
+
+- Pin Pi SDK development and verification dependencies to 1.1.0 and verify the extension in an isolated Pi host.
+
 ## [0.10.12] - 2026-09-30
 
 ### Changed

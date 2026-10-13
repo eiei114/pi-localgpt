@@ -52,7 +52,7 @@ pi install npm:pi-localgpt -l
 Pin a specific version when you want reproducible installs:
 
 ```bash
-pi install npm:pi-localgpt@0.10.12
+pi install npm:pi-localgpt@0.10.13
 ```
 
 Or install from GitHub:
@@ -115,8 +115,8 @@ Roblox trend summaries: [`docs/roblox-trend-prototype.md`](docs/roblox-trend-pro
 | `extensions/` | Pi TypeScript extension entrypoints |
 | `lib/` | Shared TypeScript helpers (MCP client, gen tools) |
 | `skills/` | Agent Skills (`localgpt-gen`) |
-| `scripts/` | CI helpers (version bump check) |
-| `docs/` | Supporting docs (release, manual test checklist) |
+| `scripts/` | CI helpers (version bump check and Pi SDK smoke) |
+| `docs/` | Supporting docs (release, manual checklist, SDK verification evidence) |
 
 ## Tools
 
@@ -232,7 +232,7 @@ npm install
 npm run ci
 ```
 
-`npm run ci` runs typecheck, tests, and `npm pack --dry-run` (via `pack:check`) so the published tarball matches `package.json` `files`.
+`npm run ci` runs typecheck, tests, the isolated Pi SDK 1.1.0 host smoke, and `npm pack --dry-run` (via `pack:check`) so the published tarball matches `package.json` `files`.
 
 Before release, run the manual smoke checks in [`docs/manual-test-checklist.md`](docs/manual-test-checklist.md) (status, design-log search/save, platform notes).
 
@@ -246,12 +246,7 @@ npm run pack:check
 
 This package uses npm Trusted Publishing — no `NPM_TOKEN` required.
 
-```bash
-npm version patch
-git push
-```
-
-See [`docs/release.md`](docs/release.md) for setup details.
+Version bumps merged to `main` do not trigger a release or npm publication. An authorized human must start the release workflow; see [`docs/release.md`](docs/release.md) for details.
 
 ## Security
 
