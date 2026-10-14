@@ -124,6 +124,26 @@ test("genCallTool spawns 1-shot process and returns result", async () => {
   assert.equal(mock.callCount, 1);
 });
 
+test("genCallTool rejects non-JSON arguments and cleans up the initialized child", async () => {
+  const responses = new Map([
+    ["initialize", { protocolVersion: "2024-11-05" }],
+  ]);
+  const mock = createMockSpawn(responses);
+  const cyclicArgs = {};
+  cyclicArgs.self = cyclicArgs;
+
+  await assert.rejects(
+    genCallTool("gen_screenshot", cyclicArgs, { spawnFn: mock.spawnFn, timeoutMs: 5000 }),
+    (err) => {
+      assert.match(err.message, /Converting circular structure to JSON/);
+      assert.doesNotMatch(err.message, /stderr:/);
+      return true;
+    },
+  );
+  assert.equal(mock.callCount, 1);
+  assert.equal(mock.killCount, 1);
+});
+
 test("genListTools spawns 1-shot process and returns tools", async () => {
   const responses = new Map([
     ["initialize", { protocolVersion: "2024-11-05" }],
