@@ -52,7 +52,7 @@ pi install npm:pi-localgpt -l
 Pin a specific version when you want reproducible installs:
 
 ```bash
-pi install npm:pi-localgpt@0.10.14
+pi install npm:pi-localgpt@0.10.15
 ```
 
 Or install from GitHub:
@@ -232,7 +232,7 @@ npm install
 npm run ci
 ```
 
-`npm run ci` runs typecheck, tests, the isolated Pi SDK 1.1.0 host smoke, and `npm pack --dry-run` (via `pack:check`) so the published tarball matches `package.json` `files`.
+`npm run ci` runs typecheck, tests, the isolated Pi SDK 1.2.0 host smoke, and `npm pack --dry-run` (via `pack:check`) so the published tarball matches `package.json` `files`.
 
 Before release, run the manual smoke checks in [`docs/manual-test-checklist.md`](docs/manual-test-checklist.md) (status, design-log search/save, platform notes).
 
