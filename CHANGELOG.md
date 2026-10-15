@@ -1,5 +1,11 @@
 # Changelog
 
+## [0.10.14] - 2026-10-16
+
+### Changed
+
+- Centralize vault path handling shared by screenshot and prompt-pack exports (DOT-2409).
+
 ## [0.10.13] - 2026-10-12
 
 ### Changed
