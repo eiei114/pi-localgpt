@@ -1,15 +1,20 @@
 import * as path from "node:path";
 import * as fs from "node:fs/promises";
 import { expandPath, resolveLocalGptConfig } from "./localgpt-config.ts";
+import {
+  VAULT_PROJECTS_SEGMENT,
+  parseVaultContextFromWorkspace,
+  resolveProjectVaultDirectory,
+  resolveVaultFilePath,
+  sanitizeVaultPathSegment,
+  type VaultContext,
+} from "./vault-path-utils.ts";
 
-export const VAULT_PROJECTS_SEGMENT = "4_Project";
+export { VAULT_PROJECTS_SEGMENT, parseVaultContextFromWorkspace } from "./vault-path-utils.ts";
+export type { VaultContext } from "./vault-path-utils.ts";
+
 export const DEFAULT_SCREENSHOTS_SUBDIR = "screenshots";
 export const DEFAULT_SCREENSHOT_EXT = ".png";
-
-export interface VaultContext {
-  vaultRoot: string;
-  projectSlug: string;
-}
 
 export interface ResolvedVaultScreenshotPath {
   directory: string;
@@ -44,56 +49,8 @@ export class VaultScreenshotPathError extends Error {
   }
 }
 
-function normalizeForCompare(filePath: string): string {
-  const resolved = path.resolve(filePath);
-  return process.platform === "win32" ? resolved.toLowerCase() : resolved;
-}
-
 export function sanitizePathSegment(raw: string): string {
-  const trimmed = raw.trim();
-  if (!trimmed) throw new VaultScreenshotPathError("Path segment cannot be empty");
-
-  const sanitized = trimmed
-    .replace(/[<>:"|?*\u0000-\u001f]/g, "-")
-    .replace(/[\\/]+/g, "-")
-    .replace(/\s+/g, "-")
-    .replace(/-+/g, "-")
-    .replace(/^-+|-+$/g, "");
-
-  if (!sanitized || sanitized === "." || sanitized === "..") {
-    throw new VaultScreenshotPathError(`Invalid path segment after sanitization: ${raw}`);
-  }
-
-  return sanitized;
-}
-
-export function parseVaultContextFromWorkspace(workspace: string): VaultContext | null {
-  const resolved = path.resolve(workspace);
-  const segments = resolved.split(path.sep);
-  const projectIndex = segments.lastIndexOf(VAULT_PROJECTS_SEGMENT);
-  if (projectIndex === -1 || projectIndex >= segments.length - 1) return null;
-
-  const vaultRoot = path.resolve(segments.slice(0, projectIndex).join(path.sep) || ".");
-  const projectSlug = segments.slice(projectIndex + 1).filter(Boolean).join("/");
-  if (!projectSlug) return null;
-
-  return { vaultRoot, projectSlug };
-}
-
-function assertInsideVault(vaultRoot: string, candidatePath: string): string {
-  const resolvedVault = path.resolve(vaultRoot);
-  const resolvedCandidate = path.resolve(candidatePath);
-  const comparableVault = normalizeForCompare(resolvedVault);
-  const comparableCandidate = normalizeForCompare(resolvedCandidate);
-
-  if (
-    comparableCandidate === comparableVault
-    || comparableCandidate.startsWith(`${comparableVault}${path.sep}`)
-  ) {
-    return resolvedCandidate;
-  }
-
-  throw new VaultScreenshotPathError(`Path escapes vault root: ${candidatePath}`);
+  return sanitizeVaultPathSegment(raw, (message) => new VaultScreenshotPathError(message));
 }
 
 export function resolveProjectScreenshotsDirectory(
@@ -101,24 +58,12 @@ export function resolveProjectScreenshotsDirectory(
   projectSlug: string,
   screenshotsSubdir = DEFAULT_SCREENSHOTS_SUBDIR,
 ): string {
-  const normalizedProject = projectSlug
-    .split(/[\\/]+/)
-    .filter(Boolean)
-    .map(sanitizePathSegment)
-    .join(path.sep);
-
-  const normalizedSubdir = screenshotsSubdir
-    .split(/[\\/]+/)
-    .filter(Boolean)
-    .map(sanitizePathSegment)
-    .join(path.sep);
-
-  const projectRoot = assertInsideVault(
+  return resolveProjectVaultDirectory(
     vaultRoot,
-    path.join(path.resolve(vaultRoot), VAULT_PROJECTS_SEGMENT, normalizedProject),
+    projectSlug,
+    screenshotsSubdir,
+    (message) => new VaultScreenshotPathError(message),
   );
-
-  return assertInsideVault(vaultRoot, path.join(projectRoot, normalizedSubdir));
 }
 
 function formatTimestamp(now: Date): string {
@@ -164,11 +109,12 @@ export function resolveVaultScreenshotPath(
       ext: options.ext,
     });
 
-  const absolutePath = assertInsideVault(options.vaultRoot, path.join(directory, filename));
-  const vaultRelativePath = path
-    .relative(path.resolve(options.vaultRoot), absolutePath)
-    .split(path.sep)
-    .join("/");
+  const { absolutePath, vaultRelativePath } = resolveVaultFilePath(
+    options.vaultRoot,
+    directory,
+    filename,
+    (message) => new VaultScreenshotPathError(message),
+  );
 
   return {
     directory,

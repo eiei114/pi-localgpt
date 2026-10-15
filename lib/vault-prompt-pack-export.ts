@@ -3,10 +3,12 @@ import * as fs from "node:fs/promises";
 import { Type } from "typebox";
 import { expandPath, resolveLocalGptConfig } from "./localgpt-config.ts";
 import {
-  VAULT_PROJECTS_SEGMENT,
   parseVaultContextFromWorkspace,
+  resolveProjectVaultDirectory,
+  resolveVaultFilePath,
+  sanitizeVaultPathSegment,
   type VaultContext,
-} from "./vault-screenshot-export.ts";
+} from "./vault-path-utils.ts";
 
 /**
  * Vault prompt-pack export.
@@ -63,43 +65,8 @@ export class VaultPromptPackPathError extends Error {
   }
 }
 
-function normalizeForCompare(filePath: string): string {
-  const resolved = path.resolve(filePath);
-  return process.platform === "win32" ? resolved.toLowerCase() : resolved;
-}
-
 export function sanitizePathSegment(raw: string): string {
-  const trimmed = raw.trim();
-  if (!trimmed) throw new VaultPromptPackPathError("Path segment cannot be empty");
-
-  const sanitized = trimmed
-    .replace(/[<>:"|?*\u0000-\u001f]/g, "-")
-    .replace(/[\\/]+/g, "-")
-    .replace(/\s+/g, "-")
-    .replace(/-+/g, "-")
-    .replace(/^-+|-+$/g, "");
-
-  if (!sanitized || sanitized === "." || sanitized === "..") {
-    throw new VaultPromptPackPathError(`Invalid path segment after sanitization: ${raw}`);
-  }
-
-  return sanitized;
-}
-
-function assertInsideVault(vaultRoot: string, candidatePath: string): string {
-  const resolvedVault = path.resolve(vaultRoot);
-  const resolvedCandidate = path.resolve(candidatePath);
-  const comparableVault = normalizeForCompare(resolvedVault);
-  const comparableCandidate = normalizeForCompare(resolvedCandidate);
-
-  if (
-    comparableCandidate === comparableVault
-    || comparableCandidate.startsWith(`${comparableVault}${path.sep}`)
-  ) {
-    return resolvedCandidate;
-  }
-
-  throw new VaultPromptPackPathError(`Path escapes vault root: ${candidatePath}`);
+  return sanitizeVaultPathSegment(raw, (message) => new VaultPromptPackPathError(message));
 }
 
 export function resolveProjectPromptPacksDirectory(
@@ -107,24 +74,12 @@ export function resolveProjectPromptPacksDirectory(
   projectSlug: string,
   promptPacksSubdir = DEFAULT_PROMPT_PACKS_SUBDIR,
 ): string {
-  const normalizedProject = projectSlug
-    .split(/[\\/]+/)
-    .filter(Boolean)
-    .map(sanitizePathSegment)
-    .join(path.sep);
-
-  const normalizedSubdir = promptPacksSubdir
-    .split(/[\\/]+/)
-    .filter(Boolean)
-    .map(sanitizePathSegment)
-    .join(path.sep);
-
-  const projectRoot = assertInsideVault(
+  return resolveProjectVaultDirectory(
     vaultRoot,
-    path.join(path.resolve(vaultRoot), VAULT_PROJECTS_SEGMENT, normalizedProject),
+    projectSlug,
+    promptPacksSubdir,
+    (message) => new VaultPromptPackPathError(message),
   );
-
-  return assertInsideVault(vaultRoot, path.join(projectRoot, normalizedSubdir));
 }
 
 function formatTimestamp(now: Date): string {
@@ -172,11 +127,12 @@ export function resolveVaultPromptPackPath(
       ext: options.ext,
     });
 
-  const absolutePath = assertInsideVault(options.vaultRoot, path.join(directory, filename));
-  const vaultRelativePath = path
-    .relative(path.resolve(options.vaultRoot), absolutePath)
-    .split(path.sep)
-    .join("/");
+  const { absolutePath, vaultRelativePath } = resolveVaultFilePath(
+    options.vaultRoot,
+    directory,
+    filename,
+    (message) => new VaultPromptPackPathError(message),
+  );
 
   return {
     directory,
