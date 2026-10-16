@@ -46,7 +46,7 @@ const observe = (responses, overrides = {}) => ({
   first_timed_out: false,
   first_closed: true,
   first_cleanup_failed: false,
-  expectedVersion: "1.1.0",
+  expectedVersion: "1.2.0",
   ...overrides,
 });
 
@@ -58,7 +58,7 @@ test("the report contract and frozen Pi SDK set are exact", () => {
     "@earendil-works/pi-coding-agent",
     "@earendil-works/pi-tui",
   ]);
-  assert.deepEqual(Object.values(SDK_VERSIONS), ["1.1.0", "1.1.0", "1.1.0", "1.1.0"]);
+  assert.deepEqual(Object.values(SDK_VERSIONS), ["1.2.0", "1.2.0", "1.2.0", "1.2.0"]);
 });
 
 test("JSONL parser accepts LF/CRLF and ignores diagnostics", () => {
@@ -120,13 +120,13 @@ test("reload requires second-process registration, feature response, and natural
 });
 
 test("native shell case checks exact CLI version and actual child exit", () => {
-  assert.equal(behaviorAssertions("host_shell", observe([], { stdout: "1.1.0\r\n" }))[0].passed, true);
+  assert.equal(behaviorAssertions("host_shell", observe([], { stdout: "1.2.0\r\n" }))[0].passed, true);
   for (const bad of [
-    { stdout: "11.1.0" },
-    { stdout: "1.1.0", stderr: "diagnostic" },
-    { stdout: "1.1.0", exit_code: 1 },
-    { stdout: "1.1.0", closed: false },
-    { stdout: "1.1.0", timed_out: true },
+    { stdout: "11.2.0" },
+    { stdout: "1.2.0", stderr: "diagnostic" },
+    { stdout: "1.2.0", exit_code: 1 },
+    { stdout: "1.2.0", closed: false },
+    { stdout: "1.2.0", timed_out: true },
   ]) {
     assert.equal(behaviorAssertions("host_shell", observe([], bad))[0].passed, false);
   }
