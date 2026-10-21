@@ -1,5 +1,11 @@
 # Changelog
 
+## [0.10.16] - 2026-10-22
+
+### Changed
+
+- Share memory output truncation across search and get formatters (DOT-2665).
+
 ## [0.10.15] - 2026-10-16
 
 ### Changed

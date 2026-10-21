@@ -31,10 +31,9 @@ test("formatMemoryGetSlice truncates long output for agent context", () => {
     endLine: 5,
   };
   const text = formatMemoryGetSlice(slice, 50);
+  const untruncated = `DESIGN-LOG.md (lines 1-5)\n\n${"x".repeat(100)}`;
 
-  assert.ok(text.includes("DESIGN-LOG.md (lines 1-5)"));
-  assert.ok(text.includes("[truncated"));
-  assert.ok(text.length <= 50 + 40);
+  assert.equal(text, `${untruncated.slice(0, 50)}\n\n[truncated ${untruncated.length - 50} chars]`);
 });
 
 test("formatMemoryGetUnavailable includes status-style hints", () => {

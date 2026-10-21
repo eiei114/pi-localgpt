@@ -52,7 +52,7 @@ pi install npm:pi-localgpt -l
 Pin a specific version when you want reproducible installs:
 
 ```bash
-pi install npm:pi-localgpt@0.10.15
+pi install npm:pi-localgpt@0.10.16
 ```
 
 Or install from GitHub:

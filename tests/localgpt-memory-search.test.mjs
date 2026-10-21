@@ -33,10 +33,9 @@ test("extractMemorySearchHits normalizes upstream results array", () => {
 test("formatMemorySearchHits truncates long output for agent context", () => {
   const hits = [{ id: "mem_1", content: "x".repeat(100) }];
   const text = formatMemorySearchHits(hits, "rust", 50);
+  const untruncated = 'LocalGPT memory search (hybrid) for "rust":\n\n## id=mem_1\n' + "x".repeat(100);
 
-  assert.ok(text.includes("LocalGPT memory search (hybrid)"));
-  assert.ok(text.includes("[truncated"));
-  assert.ok(text.length <= 50 + 40);
+  assert.equal(text, `${untruncated.slice(0, 50)}\n\n[truncated ${untruncated.length - 50} chars]`);
 });
 
 test("formatMemorySearchUnavailable includes status-style hints", () => {
