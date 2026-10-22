@@ -6,6 +6,10 @@
 
 - Share memory output truncation across search and get formatters (DOT-2665).
 
+### Fixed
+
+- Guard memory output truncation against `NaN` character limits (DOT-2677).
+
 ## [0.10.15] - 2026-10-16
 
 ### Changed
