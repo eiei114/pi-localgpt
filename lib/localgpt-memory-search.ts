@@ -1,6 +1,7 @@
 import { genCallTool, type GenCallOptions } from "./gen-mcp-client.ts";
 import { formatGenStatus, inspectGenStatus, type GenStatusSummary } from "./gen-status.ts";
 import { formatLocalGptStatus, inspectLocalGptStatus, type LocalGptStatusSummary } from "./localgpt-status.ts";
+import { truncateText } from "./truncate-text.ts";
 
 export const LOCALGPT_MEMORY_SEARCH_DEFAULT_MAX_CHARS = 12_000;
 export const LOCALGPT_MEMORY_SEARCH_DEFAULT_LIMIT = 10;
@@ -31,11 +32,6 @@ export interface RunMemorySearchOptions {
   inspectLocal?: typeof inspectLocalGptStatus;
   inspectGen?: typeof inspectGenStatus;
   callTool?: (toolName: string, args: Record<string, unknown>, options?: GenCallOptions) => Promise<unknown>;
-}
-
-function truncateText(value: string, maxChars: number): string {
-  if (value.length <= maxChars) return value;
-  return `${value.slice(0, maxChars)}\n\n[truncated ${value.length - maxChars} chars]`;
 }
 
 function normalizeHit(raw: unknown): MemorySearchHit | null {

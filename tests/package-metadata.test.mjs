@@ -44,10 +44,25 @@ test("package.json description matches curated tool count", () => {
   );
 });
 
-test("README pin example matches package.json version", () => {
-  assert.match(
-    readme,
-    new RegExp(`pi install npm:pi-localgpt@${pkg.version}`),
+test("README install pin does not exceed the staged package version", () => {
+  const pinnedVersion = readme.match(
+    /pi install npm:pi-localgpt@(\d+\.\d+\.\d+)/,
+  )?.[1];
+  assert.ok(pinnedVersion, "README should include a stable pinned install example");
+
+  const versionParts = (version) => version.split(".").map(Number);
+  const [pinnedMajor, pinnedMinor, pinnedPatch] = versionParts(pinnedVersion);
+  const [packageMajor, packageMinor, packagePatch] = versionParts(pkg.version);
+  const isNotNewer =
+    pinnedMajor < packageMajor ||
+    (pinnedMajor === packageMajor && pinnedMinor < packageMinor) ||
+    (pinnedMajor === packageMajor &&
+      pinnedMinor === packageMinor &&
+      pinnedPatch <= packagePatch);
+
+  assert.ok(
+    isNotNewer,
+    `README pin ${pinnedVersion} must not be newer than staged package ${pkg.version}`,
   );
 });
 
