@@ -1,4 +1,5 @@
 import * as path from "node:path";
+import { truncateGenPlanDescription } from "./truncate-description.ts";
 
 export const ROBLOX_TREND_PROTOTYPE_DEFAULT_MAX_CHARS = 6_000;
 
@@ -146,13 +147,7 @@ export function truncatePrototypeDescription(
   description: string,
   maxChars: number,
 ): { text: string; truncated: boolean } {
-  if (description.length <= maxChars) return { text: description, truncated: false };
-  const suffix = "\n\n[truncated for gen_plan_layout]";
-  if (maxChars <= suffix.length) {
-    return { text: description.slice(0, maxChars), truncated: true };
-  }
-  const limit = maxChars - suffix.length;
-  return { text: `${description.slice(0, limit).trimEnd()}${suffix}`, truncated: true };
+  return truncateGenPlanDescription(description, maxChars);
 }
 
 export function buildRobloxTrendPrototypePrompt(
