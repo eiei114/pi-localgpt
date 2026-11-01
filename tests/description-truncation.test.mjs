@@ -20,6 +20,10 @@ test("vault notes and Roblox prompts retain the same gen_plan_layout truncation 
     text: description.slice(0, 20),
     truncated: true,
   });
+  assert.deepEqual(truncatePlanDescription(description, suffix.length), {
+    text: description.slice(0, suffix.length),
+    truncated: true,
+  });
   assert.deepEqual(truncatePlanDescription(description, suffix.length + 5), {
     text: `abc${suffix}`,
     truncated: true,
