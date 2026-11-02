@@ -7,7 +7,6 @@ import {
   EXTENSION_LOAD_ERROR_PATTERN,
   parseJsonLines,
   SDK_NAMES,
-  SDK_VERSIONS,
   UNHANDLED_ERROR_PATTERN,
   VERIFICATION_CONTRACT,
 } from "./pi-sdk-smoke-contract.mjs";
@@ -23,8 +22,9 @@ const readJson = (path) => JSON.parse(readFileSync(path, "utf8"));
 const manifest = readJson(resolve(root, "package.json"));
 const sdkVersions = Object.fromEntries(SDK_NAMES.map((name) => {
   const version = readJson(resolve(root, "node_modules", name, "package.json")).version;
-  if (manifest.devDependencies?.[name] !== version || SDK_VERSIONS[name] !== version) {
-    throw new Error(`Smoke requires the exact Pi SDK 1.2.0 dev/test pin for ${name}; installed ${version}`);
+  const pinnedVersion = manifest.devDependencies?.[name];
+  if (pinnedVersion !== version) {
+    throw new Error(`Smoke requires the installed Pi SDK version for ${name} to match its package.json devDependency; pinned ${pinnedVersion}, installed ${version}`);
   }
   return [name, version];
 }));
@@ -257,7 +257,7 @@ async function main() {
       verification_contract: VERIFICATION_CONTRACT,
       sdk_versions: sdkVersions,
       platform: process.platform,
-      model_inference: "none; actual Pi 1.2.0 RPC host loads this extension and executes local commands",
+      model_inference: `none; actual Pi ${sdkVersions["@earendil-works/pi-coding-agent"]} RPC host loads this extension and executes local commands`,
       unhandled_errors: cases.filter((item) => item.hasUnhandledError).length,
       extension_load_errors: cases.filter((item) => item.hasLoadError
         || (item.name === "extension_load" && !item.passed)).length,

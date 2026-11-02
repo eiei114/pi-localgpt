@@ -1,12 +1,15 @@
 import assert from "node:assert/strict";
+import { readFileSync } from "node:fs";
 import test from "node:test";
 import {
   behaviorAssertions,
   parseJsonLines,
   SDK_NAMES,
-  SDK_VERSIONS,
   VERIFICATION_CONTRACT,
 } from "../scripts/pi-sdk-smoke-contract.mjs";
+
+const manifest = JSON.parse(readFileSync(new URL("../package.json", import.meta.url), "utf8"));
+const expectedPiVersion = manifest.devDependencies["@earendil-works/pi-coding-agent"];
 
 const commands = {
   id: "commands",
@@ -46,11 +49,11 @@ const observe = (responses, overrides = {}) => ({
   first_timed_out: false,
   first_closed: true,
   first_cleanup_failed: false,
-  expectedVersion: "1.2.0",
+  expectedVersion: expectedPiVersion,
   ...overrides,
 });
 
-test("the report contract and frozen Pi SDK set are exact", () => {
+test("the report contract and Pi SDK dependency pins are exact", () => {
   assert.equal(VERIFICATION_CONTRACT, "pi-sdk-behavior-v2");
   assert.deepEqual(SDK_NAMES, [
     "@earendil-works/pi-agent-core",
@@ -58,7 +61,9 @@ test("the report contract and frozen Pi SDK set are exact", () => {
     "@earendil-works/pi-coding-agent",
     "@earendil-works/pi-tui",
   ]);
-  assert.deepEqual(Object.values(SDK_VERSIONS), ["1.2.0", "1.2.0", "1.2.0", "1.2.0"]);
+  const pinnedVersions = SDK_NAMES.map((name) => manifest.devDependencies[name]);
+  assert.ok(pinnedVersions.every((version) => typeof version === "string"));
+  assert.ok(pinnedVersions.every((version) => version === pinnedVersions[0]));
 });
 
 test("JSONL parser accepts LF/CRLF and ignores diagnostics", () => {
@@ -120,13 +125,13 @@ test("reload requires second-process registration, feature response, and natural
 });
 
 test("native shell case checks exact CLI version and actual child exit", () => {
-  assert.equal(behaviorAssertions("host_shell", observe([], { stdout: "1.2.0\r\n" }))[0].passed, true);
+  assert.equal(behaviorAssertions("host_shell", observe([], { stdout: `${expectedPiVersion}\r\n` }))[0].passed, true);
   for (const bad of [
-    { stdout: "11.2.0" },
-    { stdout: "1.2.0", stderr: "diagnostic" },
-    { stdout: "1.2.0", exit_code: 1 },
-    { stdout: "1.2.0", closed: false },
-    { stdout: "1.2.0", timed_out: true },
+    { stdout: `1${expectedPiVersion}` },
+    { stdout: expectedPiVersion, stderr: "diagnostic" },
+    { stdout: expectedPiVersion, exit_code: 1 },
+    { stdout: expectedPiVersion, closed: false },
+    { stdout: expectedPiVersion, timed_out: true },
   ]) {
     assert.equal(behaviorAssertions("host_shell", observe([], bad))[0].passed, false);
   }

@@ -1,5 +1,11 @@
 # Changelog
 
+## [0.10.18] - 2026-11-03
+
+### Changed
+
+- Update the Pi SDK development and verification dependencies to 1.4.0, and read the smoke-test version from the manifest.
+
 ## [0.10.17] - 2026-11-02
 
 ### Changed
