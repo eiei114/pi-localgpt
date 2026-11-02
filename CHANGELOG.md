@@ -1,5 +1,11 @@
 # Changelog
 
+## [0.10.17] - 2026-11-02
+
+### Changed
+
+- Share `gen_plan_layout` description truncation between vault-note and Roblox trend workflows (DOT-2902).
+
 ## [0.10.16] - 2026-10-22
 
 ### Changed
