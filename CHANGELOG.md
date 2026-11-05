@@ -1,5 +1,15 @@
 # Changelog
 
+## [0.10.18] - 2026-11-05
+
+### Changed
+
+- Bump the development Pi SDK pins to 1.4.0 and verify compatibility in the isolated Pi host smoke.
+
+### Fixed
+
+- Read the expected Pi SDK version from the `package.json` devDependency pins instead of a hard-coded `1.2.0` literal, so an SDK bump fails only on real host behavior instead of on a stale version string (DOT-3268).
+
 ## [0.10.17] - 2026-11-02
 
 ### Changed

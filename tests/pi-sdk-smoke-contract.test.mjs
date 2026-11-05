@@ -3,8 +3,8 @@ import test from "node:test";
 import {
   behaviorAssertions,
   parseJsonLines,
+  readSdkPins,
   SDK_NAMES,
-  SDK_VERSIONS,
   VERIFICATION_CONTRACT,
 } from "../scripts/pi-sdk-smoke-contract.mjs";
 
@@ -46,7 +46,7 @@ const observe = (responses, overrides = {}) => ({
   first_timed_out: false,
   first_closed: true,
   first_cleanup_failed: false,
-  expectedVersion: "1.2.0",
+  expectedVersion: "9.9.9",
   ...overrides,
 });
 
@@ -58,7 +58,24 @@ test("the report contract and frozen Pi SDK set are exact", () => {
     "@earendil-works/pi-coding-agent",
     "@earendil-works/pi-tui",
   ]);
-  assert.deepEqual(Object.values(SDK_VERSIONS), ["1.2.0", "1.2.0", "1.2.0", "1.2.0"]);
+});
+
+test("SDK pins come from the manifest, not a frozen literal", () => {
+  const pins = readSdkPins(Object.fromEntries(SDK_NAMES.map((name) => [name, "1.4.0"])));
+  assert.deepEqual(Object.values(pins), ["1.4.0", "1.4.0", "1.4.0", "1.4.0"]);
+  assert.deepEqual(Object.keys(pins), SDK_NAMES);
+});
+
+test("SDK pins must be exact versions", () => {
+  const exact = Object.fromEntries(SDK_NAMES.map((name) => [name, "1.4.0"]));
+  for (const bad of ["^1.4.0", "~1.4.0", "latest", "1.4", "", undefined]) {
+    assert.throws(
+      () => readSdkPins({ ...exact, [SDK_NAMES[0]]: bad }),
+      /exact version/,
+      `expected ${String(bad)} to be rejected`,
+    );
+  }
+  assert.throws(() => readSdkPins({}), /exact version/);
 });
 
 test("JSONL parser accepts LF/CRLF and ignores diagnostics", () => {
@@ -120,13 +137,13 @@ test("reload requires second-process registration, feature response, and natural
 });
 
 test("native shell case checks exact CLI version and actual child exit", () => {
-  assert.equal(behaviorAssertions("host_shell", observe([], { stdout: "1.2.0\r\n" }))[0].passed, true);
+  assert.equal(behaviorAssertions("host_shell", observe([], { stdout: "9.9.9\r\n" }))[0].passed, true);
   for (const bad of [
-    { stdout: "11.2.0" },
-    { stdout: "1.2.0", stderr: "diagnostic" },
-    { stdout: "1.2.0", exit_code: 1 },
-    { stdout: "1.2.0", closed: false },
-    { stdout: "1.2.0", timed_out: true },
+    { stdout: "19.9.9" },
+    { stdout: "9.9.9", stderr: "diagnostic" },
+    { stdout: "9.9.9", exit_code: 1 },
+    { stdout: "9.9.9", closed: false },
+    { stdout: "9.9.9", timed_out: true },
   ]) {
     assert.equal(behaviorAssertions("host_shell", observe([], bad))[0].passed, false);
   }

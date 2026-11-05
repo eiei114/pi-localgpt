@@ -5,7 +5,28 @@ export const SDK_NAMES = [
   "@earendil-works/pi-coding-agent",
   "@earendil-works/pi-tui",
 ];
-export const SDK_VERSIONS = Object.fromEntries(SDK_NAMES.map((name) => [name, "1.2.0"]));
+export const EXACT_SEMVER_PATTERN = /^\d+\.\d+\.\d+(?:-[0-9A-Za-z.]+)?$/;
+
+/**
+ * Read the exact Pi SDK pins declared by the package manifest.
+ *
+ * The manifest is the single source of truth for the verified SDK version. A
+ * frozen literal here silently turns the smoke gate into a stale-version check:
+ * a dependency bump then fails for the wrong reason instead of validating the
+ * updated host. Pins must be exact (no `^`/`~` ranges) so the report stays
+ * reproducible.
+ */
+export function readSdkPins(devDependencies = {}) {
+  return Object.fromEntries(SDK_NAMES.map((name) => {
+    const pin = devDependencies?.[name];
+    if (typeof pin !== "string" || !EXACT_SEMVER_PATTERN.test(pin)) {
+      throw new Error(
+        `Pi SDK ${name} must be pinned to an exact version in package.json devDependencies; found ${String(pin)}`,
+      );
+    }
+    return [name, pin];
+  }));
+}
 export const UNHANDLED_ERROR_PATTERN = /UnhandledPromiseRejection|uncaught exception|(?:shutdown|dispose|cleanup).{0,40}(?:error|failed)|(?:error|failed).{0,40}(?:shutdown|dispose|cleanup)/i;
 export const EXTENSION_LOAD_ERROR_PATTERN = /Failed to load extension|Error loading extension/i;
 
