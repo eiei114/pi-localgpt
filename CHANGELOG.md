@@ -4,7 +4,7 @@
 
 ### Changed
 
-- Bump the development Pi SDK pins to 1.4.0 and verify compatibility in the isolated Pi host smoke.
+- Pin the development and verification Pi SDK to 1.5.0 and validate compatibility in the isolated Pi host.
 
 ### Fixed
 
