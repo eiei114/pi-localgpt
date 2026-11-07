@@ -232,7 +232,7 @@ npm install
 npm run ci
 ```
 
-`npm run ci` runs typecheck, tests, the isolated Pi SDK 1.2.0 host smoke, and `npm pack --dry-run` (via `pack:check`) so the published tarball matches `package.json` `files`.
+`npm run ci` runs typecheck, tests, the isolated Pi SDK host smoke (the verified SDK versions are read from the `package.json` devDependency pins), and `npm pack --dry-run` (via `pack:check`) so the published tarball matches `package.json` `files`.
 
 Before release, run the manual smoke checks in [`docs/manual-test-checklist.md`](docs/manual-test-checklist.md) (status, design-log search/save, platform notes).
 
