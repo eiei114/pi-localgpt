@@ -5,6 +5,7 @@
 ### Fixed
 
 - Honour `AbortSignal` in the one-shot `localgpt-gen` MCP client: a pre-aborted signal no longer spawns the child, a mid-call abort rejects with `localgpt-gen MCP call aborted` instead of the internal `MCP client cleanup` error and kills the child, and the abort listener is removed when the call settles (DOT-3716).
+- Keep a caller-supplied abort reason even when it is an `Error` named `AbortError` (only the platform's default `DOMException` reason stays silent), reject a call aborted synchronously inside `spawnFn`, and check cancellation after serialising params so an abort raised from `toJSON` no longer writes the request or waits for the response timeout (DOT-3716).
 
 ## [0.10.18] - 2026-11-05
 
