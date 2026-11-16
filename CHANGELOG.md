@@ -1,5 +1,11 @@
 # Changelog
 
+## [0.10.19] - 2026-11-16
+
+### Fixed
+
+- Honour `AbortSignal` in the one-shot `localgpt-gen` MCP client: a pre-aborted signal no longer spawns the child, a mid-call abort rejects with `localgpt-gen MCP call aborted` instead of the internal `MCP client cleanup` error and kills the child, and the abort listener is removed when the call settles (DOT-3716).
+
 ## [0.10.18] - 2026-11-05
 
 ### Changed
