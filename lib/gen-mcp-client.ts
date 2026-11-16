@@ -29,6 +29,38 @@ export interface GenCallOptions {
 
 const DEFAULT_COMMAND = "localgpt-gen";
 const DEFAULT_CONNECT_ARGS = ["mcp-server", "--connect"];
+export const ABORT_ERROR_MESSAGE = "localgpt-gen MCP call aborted";
+
+/**
+ * Pristine `AbortController.abort()` reason: a platform-generated `AbortError`
+ * DOMException. Only this reason is suppressed, because its text is noise — a
+ * caller-supplied reason keeps its message even when it is named `AbortError`.
+ */
+const DEFAULT_ABORT_REASON: unknown = (() => {
+  const controller = new AbortController();
+  controller.abort();
+  return controller.signal.reason;
+})();
+
+function isDefaultAbortReason(reason: unknown): boolean {
+  if (!(reason instanceof DOMException) || reason.name !== "AbortError") {
+    return false;
+  }
+  return DEFAULT_ABORT_REASON instanceof DOMException
+    && reason.message === DEFAULT_ABORT_REASON.message;
+}
+
+/** Build the abort message, keeping a caller-supplied `signal.reason`. */
+function abortMessage(signal?: AbortSignal): string {
+  const reason = signal?.reason;
+  if (reason === undefined || isDefaultAbortReason(reason)) {
+    return ABORT_ERROR_MESSAGE;
+  }
+  if (reason instanceof Error && reason.message) {
+    return `${ABORT_ERROR_MESSAGE}: ${reason.message}`;
+  }
+  return ABORT_ERROR_MESSAGE;
+}
 export const DEFAULT_TIMEOUT_MS = 30_000;
 export const LOCALGPT_GEN_TIMEOUT_MS_ENV = "LOCALGPT_GEN_TIMEOUT_MS";
 
@@ -106,6 +138,11 @@ async function genMcpOneShot(
   const timeoutMs = resolveTimeoutMs(options.timeoutMs);
   const spawnFn = options.spawnFn ?? spawn;
   const signal = options.signal;
+
+  // Aborting before the call must not spawn `localgpt-gen` at all.
+  if (signal?.aborted) {
+    throw new Error(abortMessage(signal));
+  }
 
   const proc = spawnFn(command, connectArgs, {
     stdio: ["pipe", "pipe", "pipe"],
@@ -186,14 +223,27 @@ async function genMcpOneShot(
     }
   });
 
+  let aborted = false;
+
+  function assertNotAborted(): void {
+    if (aborted || signal?.aborted) throw new Error(abortMessage(signal));
+  }
+
+  // Serialize before guarding: `params` may carry a caller `toJSON` that aborts
+  // the call, and no request may reach stdin after cancellation.
   function writeRequest(m: string, p: Record<string, unknown>): number {
-    const id = nextId++;
-    proc.stdin!.write(JSON.stringify({ jsonrpc: "2.0", id, method: m, params: p }) + "\n");
+    const id = nextId;
+    const line = JSON.stringify({ jsonrpc: "2.0", id, method: m, params: p }) + "\n";
+    assertNotAborted();
+    nextId = id + 1;
+    proc.stdin!.write(line);
     return id;
   }
 
   function writeNotification(m: string, p: Record<string, unknown>): void {
-    proc.stdin!.write(JSON.stringify({ jsonrpc: "2.0", method: m, params: p }) + "\n");
+    const line = JSON.stringify({ jsonrpc: "2.0", method: m, params: p }) + "\n";
+    assertNotAborted();
+    proc.stdin!.write(line);
   }
 
   function waitForResponse(targetId: number, ms: number): Promise<JsonRpcResponse> {
@@ -238,12 +288,12 @@ async function genMcpOneShot(
 
   let onAbort: (() => void) | undefined;
 
-  function cleanup() {
+  function cleanup(pendingFailure?: Error) {
     proc.stderr?.removeListener("data", onStderrData);
     rl.close();
     if (signal && onAbort) signal.removeEventListener("abort", onAbort);
     for (const [, waiter] of pendingWaiters) {
-      waiter.reject(new Error("MCP client cleanup"));
+      waiter.reject(pendingFailure ?? new Error("MCP client cleanup"));
     }
     pendingWaiters.clear();
     responsesById.clear();
@@ -254,8 +304,14 @@ async function genMcpOneShot(
   }
 
   if (signal) {
-    onAbort = () => cleanup();
+    onAbort = () => {
+      aborted = true;
+      cleanup(new Error(abortMessage(signal)));
+    };
     signal.addEventListener("abort", onAbort, { once: true });
+    // A `spawnFn` may abort the controller synchronously before returning the
+    // child; that abort fires before this listener exists, so replay it here.
+    if (signal.aborted) onAbort();
   }
 
   try {
@@ -268,6 +324,8 @@ async function genMcpOneShot(
         else reject(new Error(`Spawn ${command} failed: no PID`));
       }, 100);
     });
+
+    assertNotAborted();
 
     // MCP initialize
     const initId = writeRequest("initialize", {
@@ -292,7 +350,9 @@ async function genMcpOneShot(
 
     return resp.result;
   } catch (err) {
-    const message = err instanceof Error ? err.message : String(err);
+    const message = aborted || signal?.aborted
+      ? abortMessage(signal)
+      : err instanceof Error ? err.message : String(err);
     throw errorWithStderr(message);
   } finally {
     cleanup();

@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { EventEmitter } from "node:events";
+import { EventEmitter, getEventListeners } from "node:events";
 
 const { checkGenBinary, genCallTool, genListTools, resolveTimeoutMs, DEFAULT_TIMEOUT_MS, LOCALGPT_GEN_TIMEOUT_MS_ENV } = await import("../lib/gen-mcp-client.ts");
 const { formatGenStatus, inspectGenStatus } = await import("../lib/gen-status.ts");
@@ -24,6 +24,10 @@ import { Readable } from "node:stream";
 function createMockSpawn(responses, options = {}) {
   let callCount = 0;
   let killCount = 0;
+  let stdinWriteCount = 0;
+  let stdinWritesAfterKill = 0;
+  let lastChild = null;
+  const stdinLines = [];
 
   return {
     spawnFn: (_command, _args, _opts) => {
@@ -47,6 +51,9 @@ function createMockSpawn(responses, options = {}) {
 
       const stdin = {
         write: (data, cb) => {
+          stdinWriteCount++;
+          if (emitter.killed) stdinWritesAfterKill++;
+          stdinLines.push(String(data).trim());
           try {
             const msg = JSON.parse(data.trim());
             const key = msg.method === "tools/call" ? msg.params?.name : msg.method;
@@ -76,10 +83,15 @@ function createMockSpawn(responses, options = {}) {
         setTimeout(() => emitter.stderr.emit("data", chunk), 0);
       }
 
+      lastChild = emitter;
       return emitter;
     },
     get callCount() { return callCount; },
     get killCount() { return killCount; },
+    get stdinWriteCount() { return stdinWriteCount; },
+    get stdinWritesAfterKill() { return stdinWritesAfterKill; },
+    get stdinLines() { return stdinLines; },
+    get lastChild() { return lastChild; },
   };
 }
 
@@ -780,4 +792,202 @@ test("genExportScreenshot calls gen_export_screenshot", async () => {
   const mock = createMockSpawn(responses);
   const result = await genExportScreenshot({ path: "screenshots/scene_001.png" }, { spawnFn: mock.spawnFn, timeoutMs: 5000 });
   assert.ok(result.content[0].text.includes("exported"));
+});
+
+// ── AbortSignal handling ──
+
+test("pre-aborted signal rejects without spawning localgpt-gen", async () => {
+  const controller = new AbortController();
+  controller.abort();
+  const responses = new Map([
+    ["initialize", { protocolVersion: "2024-11-05" }],
+    ["gen_screenshot", { status: "spawned" }],
+  ]);
+  const mock = createMockSpawn(responses);
+
+  await assert.rejects(
+    genCallTool("gen_screenshot", {}, {
+      spawnFn: mock.spawnFn,
+      signal: controller.signal,
+      timeoutMs: 5000,
+    }),
+    (err) => {
+      assert.equal(err.message, "localgpt-gen MCP call aborted");
+      assert.doesNotMatch(err.message, /MCP client cleanup/);
+      return true;
+    },
+  );
+  assert.equal(mock.callCount, 0);
+  assert.equal(mock.killCount, 0);
+});
+
+test("pre-aborted signal surfaces a caller-supplied Error reason", async () => {
+  const controller = new AbortController();
+  controller.abort(new Error("user cancelled WorldGen"));
+  const mock = createMockSpawn(new Map());
+
+  await assert.rejects(
+    genCallTool("gen_screenshot", {}, {
+      spawnFn: mock.spawnFn,
+      signal: controller.signal,
+      timeoutMs: 5000,
+    }),
+    (err) => {
+      assert.equal(err.message, "localgpt-gen MCP call aborted: user cancelled WorldGen");
+      return true;
+    },
+  );
+  assert.equal(mock.callCount, 0);
+});
+
+test("abort while waiting for initialize rejects with aborted error and kills the child", async () => {
+  const controller = new AbortController();
+  // No initialize response queued: the call stays parked in the handshake.
+  const mock = createMockSpawn(new Map());
+
+  const pending = genCallTool("gen_screenshot", {}, {
+    spawnFn: mock.spawnFn,
+    signal: controller.signal,
+    timeoutMs: 5000,
+  });
+
+  await new Promise((resolve) => setTimeout(resolve, 30));
+  assert.equal(mock.callCount, 1);
+  assert.equal(mock.stdinWriteCount, 1);
+
+  controller.abort();
+
+  await assert.rejects(pending, (err) => {
+    assert.equal(err.message, "localgpt-gen MCP call aborted");
+    assert.doesNotMatch(err.message, /MCP client cleanup/);
+    assert.doesNotMatch(err.message, /Timed out waiting for MCP response/);
+    return true;
+  });
+  assert.equal(mock.killCount, 1);
+  assert.equal(mock.stdinWritesAfterKill, 0);
+});
+
+test("abort after a successful call has no effect and removes the abort listener", async () => {
+  const controller = new AbortController();
+  const responses = new Map([
+    ["initialize", { protocolVersion: "2024-11-05" }],
+    ["gen_screenshot", { content: [{ type: "image", data: "base64abc" }] }],
+  ]);
+  const mock = createMockSpawn(responses);
+
+  const result = await genCallTool("gen_screenshot", {}, {
+    spawnFn: mock.spawnFn,
+    signal: controller.signal,
+    timeoutMs: 5000,
+  });
+  assert.deepEqual(result, { content: [{ type: "image", data: "base64abc" }] });
+
+  // Listener must be detached once the one-shot call settles.
+  assert.equal(getEventListeners(controller.signal, "abort").length, 0);
+
+  const killCountAfterCall = mock.killCount;
+  controller.abort();
+  await new Promise((resolve) => setTimeout(resolve, 20));
+  assert.equal(mock.killCount, killCountAfterCall);
+
+  // Reusing the controller for a later call still works after the abort.
+  const second = createMockSpawn(responses);
+  const secondController = new AbortController();
+  const secondResult = await genCallTool("gen_screenshot", {}, {
+    spawnFn: second.spawnFn,
+    signal: secondController.signal,
+    timeoutMs: 5000,
+  });
+  assert.deepEqual(secondResult, { content: [{ type: "image", data: "base64abc" }] });
+});
+
+test("pre-aborted signal surfaces a caller Error named AbortError", async () => {
+  const controller = new AbortController();
+  controller.abort(Object.assign(new Error("user cancelled WorldGen"), { name: "AbortError" }));
+  const mock = createMockSpawn(new Map());
+
+  await assert.rejects(
+    genCallTool("gen_screenshot", {}, {
+      spawnFn: mock.spawnFn,
+      signal: controller.signal,
+      timeoutMs: 5000,
+    }),
+    (err) => {
+      // Only the pristine default DOMException reason is suppressed, so a
+      // caller-supplied reason keeps its message even when named AbortError.
+      assert.equal(err.message, "localgpt-gen MCP call aborted: user cancelled WorldGen");
+      return true;
+    },
+  );
+  assert.equal(mock.callCount, 0);
+});
+
+test("abort during spawn does not write the handshake", async () => {
+  const controller = new AbortController();
+  const responses = new Map([
+    ["initialize", { protocolVersion: "2024-11-05" }],
+    ["gen_screenshot", { status: "spawned" }],
+  ]);
+  const mock = createMockSpawn(responses);
+  const spawnFn = (command, args, opts) => {
+    const child = mock.spawnFn(command, args, opts);
+    // Abort synchronously before the one-shot call gets the child back.
+    controller.abort();
+    return child;
+  };
+
+  await assert.rejects(
+    genCallTool("gen_screenshot", {}, {
+      spawnFn,
+      signal: controller.signal,
+      timeoutMs: 5000,
+    }),
+    (err) => {
+      assert.equal(err.message, "localgpt-gen MCP call aborted");
+      assert.doesNotMatch(err.message, /MCP client cleanup/);
+      assert.doesNotMatch(err.message, /Timed out waiting for MCP response/);
+      return true;
+    },
+  );
+  assert.equal(controller.signal.aborted, true);
+  assert.equal(mock.stdinWriteCount, 0);
+  assert.deepEqual(mock.stdinLines, []);
+  assert.equal(mock.stdinWritesAfterKill, 0);
+});
+
+test("abort raised while serializing params is not written and skips the response timeout", async () => {
+  const controller = new AbortController();
+  const responses = new Map([
+    ["initialize", { protocolVersion: "2024-11-05" }],
+    ["gen_screenshot", { status: "spawned" }],
+  ]);
+  const mock = createMockSpawn(responses);
+  const args = {
+    toJSON() {
+      controller.abort();
+      return {};
+    },
+  };
+
+  const startedAt = Date.now();
+  await assert.rejects(
+    genCallTool("gen_screenshot", args, {
+      spawnFn: mock.spawnFn,
+      signal: controller.signal,
+      timeoutMs: 1500,
+    }),
+    (err) => {
+      assert.equal(err.message, "localgpt-gen MCP call aborted");
+      assert.doesNotMatch(err.message, /Timed out waiting for MCP response/);
+      return true;
+    },
+  );
+  const elapsedMs = Date.now() - startedAt;
+
+  // The tool request must never reach stdin once serialization aborted the call.
+  const sentMessages = mock.stdinLines.map((line) => JSON.parse(line));
+  assert.equal(sentMessages.some((msg) => msg.method === "tools/call"), false);
+  assert.equal(mock.stdinWritesAfterKill, 0);
+  // Waiting out the configured timeout would take >= 1500ms.
+  assert.ok(elapsedMs < 1000, `expected a fast abort, took ${elapsedMs}ms`);
 });
