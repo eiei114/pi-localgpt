@@ -1,5 +1,11 @@
 # Changelog
 
+## [0.10.20] - 2026-11-20
+
+### Changed
+
+- Pin the development and verification Pi SDK to 1.5.2 and validate compatibility in the isolated Pi host.
+
 ## [0.10.19] - 2026-11-16
 
 ### Fixed
