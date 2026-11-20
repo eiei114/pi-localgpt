@@ -45,6 +45,9 @@ not a target for future work.
 - **`v0.4.2`** — Renamed "memory" → "design log" user-facing wording; added
   backward-compatible `localgpt_memory_*` aliases; added local workspace helper
   libraries (`localgpt-config.ts`, `localgpt-workspace.ts`).
+- **`v0.10.6`** — Completed Seed 9: added the WorldGen pipeline example in
+  [PR #71](https://github.com/eiei114/pi-localgpt/pull/71) and refreshed it in
+  [PR #72](https://github.com/eiei114/pi-localgpt/pull/72).
 
 ---
 
@@ -148,14 +151,14 @@ Estimate**.
   unchanged so Pi can still load the skill.
 - **Theme:** C
 
-### 🌱 Seed 9 — Add `examples/` WorldGen pipeline transcript
+### ✅ Seed 9 — Add `examples/` WorldGen pipeline transcript (PR #71 / #72)
 
-- **What:** Create `examples/worldgen-pipeline.md` with one end-to-end transcript
-  (plan → blockout → populate → evaluate → refine) using the curated tool names.
-- **Why:** New users lack a concrete walkthrough; README quick start is terse.
-- **Acceptance:** Markdown example committed; README links to it; no runtime code
-  changes required.
-- **Theme:** C · **Estimate:** 45–60 min
+- **Done:** Added `examples/worldgen-pipeline.md`, linked it from the README,
+  and included it in the npm package in [PR #71](https://github.com/eiei114/pi-localgpt/pull/71).
+  [PR #72](https://github.com/eiei114/pi-localgpt/pull/72) refreshed the flow
+  with the optional navmesh step. The example shipped in **`v0.10.6`**
+  (`CHANGELOG.md`, 2026-09-27).
+- **Theme:** C
 
 ### Backlog seeds (lower priority / needs maintainer input)
 
