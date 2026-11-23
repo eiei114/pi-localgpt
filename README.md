@@ -223,7 +223,7 @@ Roblox trend summaries: [`docs/roblox-trend-prototype.md`](docs/roblox-trend-pro
 | `/localgpt:plan-from-roblox-trend <path>` | Plan layout from Roblox trend JSON file |
 | `/localgpt:remember-worldgen` | Save WorldGen design rationale (rationale only; use the tool to attach references) |
 
-Arguments are not required. Details are entered after the command runs.
+`/localgpt:search`, `/localgpt:remember`, and `/localgpt:remember-worldgen` accept inline text. Without inline text, they prompt if Pi has a UI and skip the LocalGPT request otherwise.
 
 ## Development
 
