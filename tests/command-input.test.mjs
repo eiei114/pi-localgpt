@@ -5,6 +5,7 @@ const { promptForCommandInput } = await import("../lib/command-input.ts");
 
 function mockCtx(inputValue) {
   return {
+    hasUI: true,
     ui: {
       input: async () => inputValue,
     },
@@ -15,6 +16,23 @@ test("promptForCommandInput returns trimmed inline args without prompting", asyn
   const ctx = mockCtx("should not be used");
   const value = await promptForCommandInput(ctx, "Title", "placeholder", "  inline note  ");
   assert.equal(value, "inline note");
+});
+
+test("promptForCommandInput skips blank args without a UI", async (t) => {
+  const input = t.mock.fn(async () => "unexpected input");
+  const ctx = { hasUI: false, ui: { input } };
+  for (const args of ["", " \t "]) {
+    assert.equal(await promptForCommandInput(ctx, "Title", "placeholder", args), undefined);
+  }
+  assert.equal(input.mock.callCount(), 0);
+});
+
+test("promptForCommandInput returns trimmed inline args without a UI", async (t) => {
+  const input = t.mock.fn(async () => "unexpected input");
+  const ctx = { hasUI: false, ui: { input } };
+  const value = await promptForCommandInput(ctx, "Title", "placeholder", "  inline note  ");
+  assert.equal(value, "inline note");
+  assert.equal(input.mock.callCount(), 0);
 });
 
 test("promptForCommandInput prompts when args are empty", async () => {

@@ -1,5 +1,11 @@
 # Changelog
 
+## [Unreleased]
+
+### Fixed
+
+- Skip input prompts for LocalGPT search, remember, and remember-worldgen commands when Pi has no UI. Inline arguments still work (DOT-4155).
+
 ## [0.10.19] - 2026-11-16
 
 ### Fixed
