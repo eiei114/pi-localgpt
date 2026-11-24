@@ -63,6 +63,27 @@ workspace = "../workspace" # relative to config file
   assert.equal(config.workspace, path.resolve("/tmp/workspace"));
 });
 
+test("resolveLocalGptConfig prefers explicit workspace, then environment, then TOML", async () => {
+  const cwd = path.resolve("fixtures", "project");
+  const configDir = path.resolve("fixtures", "config");
+  const configPath = path.join(configDir, "config.toml");
+  const fs = new MemFs({ [configPath]: '[design-log]\nworkspace = "toml-workspace"\n' });
+  const options = { configPath, cwd, fs };
+  const env = { LOCALGPT_WORKSPACE: "env-workspace" };
+
+  const explicit = await resolveLocalGptConfig({ ...options, env, workspace: "option-workspace" });
+  assert.equal(explicit.workspaceSource, "option");
+  assert.equal(explicit.workspace, path.join(cwd, "option-workspace"));
+
+  const fromEnv = await resolveLocalGptConfig({ ...options, env });
+  assert.equal(fromEnv.workspaceSource, "env");
+  assert.equal(fromEnv.workspace, path.join(cwd, "env-workspace"));
+
+  const fromToml = await resolveLocalGptConfig({ ...options, env: {} });
+  assert.equal(fromToml.workspaceSource, "config");
+  assert.equal(fromToml.workspace, path.join(configDir, "toml-workspace"));
+});
+
 test("resolveLocalGptConfig preserves escaped backslashes in double-quoted workspace strings", async () => {
   const toml = String.raw`
 [design-log]
