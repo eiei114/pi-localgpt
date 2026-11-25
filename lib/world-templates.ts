@@ -103,22 +103,22 @@ export function resolveTemplate(
   id: string,
   registry: WorldTemplateRegistry = defaultRegistry,
 ): WorldTemplate | undefined {
-  const normalizedId = id.toLowerCase();
+  const normalizedId = id.trim().toLowerCase();
   return registry.templates.find((t) => t.id.toLowerCase() === normalizedId);
 }
 
 /**
  * List templates matching an optional tag filter.
- * When `tag` is omitted, returns all templates.
+ * When `tag` is omitted or blank, returns all templates.
  */
 export function listTemplates(
   options: { tag?: string; registry?: WorldTemplateRegistry },
 ): WorldTemplate[] {
   const reg = options.registry ?? defaultRegistry;
   const all = reg.templates;
-  if (!options.tag) return all;
-  const lower = options.tag.toLowerCase();
-  return all.filter((t) => t.tags.some((tg) => tg.toLowerCase() === lower));
+  const normalizedTag = options.tag?.trim().toLowerCase();
+  if (!normalizedTag) return all;
+  return all.filter((t) => t.tags.some((tg) => tg.toLowerCase() === normalizedTag));
 }
 
 /**
