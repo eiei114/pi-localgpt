@@ -54,6 +54,11 @@ test("resolveTemplate matches template ids case-insensitively", () => {
 test("resolveTemplate returns undefined for unknown id", () => {
   const t = resolveTemplate("does-not-exist");
   assert.equal(t, undefined);
+  assert.equal(resolveTemplate(" \tDoEs-NoT-ExIsT\n "), undefined);
+});
+
+test("resolveTemplate ignores surrounding whitespace in the requested id", () => {
+  assert.equal(resolveTemplate(" \tFaNtAsY-ViLlAgE\n "), resolveTemplate("fantasy-village"));
 });
 
 test("resolveTemplate uses custom registry", () => {
@@ -126,6 +131,16 @@ test("listTemplates is case-insensitive on tag", () => {
   const upper = listTemplates({ tag: "MEDIEVAL" });
   const lower = listTemplates({ tag: "medieval" });
   assert.equal(upper.length, lower.length);
+});
+
+test("listTemplates ignores surrounding whitespace in the tag filter", () => {
+  const starter = listTemplates({ tag: "starter" });
+  assert.ok(starter.length > 0);
+  assert.deepEqual(listTemplates({ tag: " \tStArTeR\n " }), starter);
+});
+
+test("listTemplates treats a whitespace-only tag filter as absent", () => {
+  assert.deepEqual(listTemplates({ tag: " \t\n " }), listTemplates({}));
 });
 
 test("formatTemplateShort includes id, name, and description", () => {
